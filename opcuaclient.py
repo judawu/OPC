@@ -24,21 +24,22 @@ STATUS_CODE_NAMES = {getattr(ua.StatusCodes, attr): attr for attr in dir(ua.Stat
 class _OPCUAClient_:
     def __init__(self, name:str='OPCUAclient',endpoint:str="opc.tcp://localhost:4840", username: Optional[str] = None, password: Optional[str] = None, cert_dir:str='clientcert'):
         self.name=name
+        self.server_node_foldeer='OPC.DELTAV.1'
         self.endpoint=endpoint
         self.client = Client(self.endpoint)
        # logging.info(f"server attributes: {dir(self.client)}")
         if username and password:
             self.username = username  # 添加这一行
-            self.password, self.nonce = self._hash_password(username,password)
+            self.password= password
+           
         elif username :
             self.username = username
-            self.password= 'DeltaVE1'
-            self.nonce = '123456789'
+            self.password= '123456789' 
         else:
             self.username = 'default'  
             self.password = 'password' 
-            self.nonce = '123456789' 
-      
+            
+        self.encrpt_password, self.nonce = self._hash_password(self.username,self.password)
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
         self.cert_dir = os.path.join(self.base_dir, "cert", cert_dir)
         os.makedirs(self.cert_dir, exist_ok=True)
@@ -52,7 +53,7 @@ class _OPCUAClient_:
         self.gen_server_cert_method = None
         self.set_server_policy_method = None
         self.restore_server_cert_method = None
-        self.client.application_uri="urn:opcda:wrapper"
+        self.client.application_uri="http://OPC.DELTAV.1"
         self.last_error_code = None
         self.last_error_desc = None
         self.security_policy = (SecurityPolicyBasic256Sha256, ua.MessageSecurityMode.SignAndEncrypt)
@@ -111,7 +112,7 @@ class _OPCUAClient_:
                     logging.info(f"Loaded client certificate from {self.client_cert_path} for transfer")
 
                 # 动态查找 add_client_cert 方法的 NodeId
-                opc_da_folder = await self._get_opc_da_folder()
+                opc_da_folder = await self._get_server_node_folder()
                 if not opc_da_folder:
                     logging.error("OPCDA.1 folder not found, cannot transfer certificate")
                     raise RuntimeError("OPCDA.1 folder not found")
@@ -163,7 +164,7 @@ class _OPCUAClient_:
                     
                        
                     self.client.set_user(self.username)
-                    self.client.set_password(self.password + ":" + self.nonce)
+                    self.client.set_password(self.encrpt_password+ ":" + self.nonce)
                     if not os.path.exists(self.client_cert_path) or not os.path.exists(self.client_key_path):
                         logging.info(f"Client connect: Client certificate {self.client_cert_path} or key {self.client_key_path} not found, generating...")
                         await self.generate_client_certificate()
@@ -188,7 +189,7 @@ class _OPCUAClient_:
                     
                     self.client.security_policy = SecurityPolicy()
                     self.client.set_user(self.username)
-                    self.client.set_password(self.password + ":" + self.nonce)
+                    self.client.set_password(self.encrpt_password + ":" + self.nonce)
                     logging.info("Client connect: use_certificate set to False,Connecting with no security policy (SecurityPolicy#None)")
                     self.client.uaclient.skip_validation = True
                 logging.info("Client connect: Attempting to connect to server...")
@@ -222,7 +223,7 @@ class _OPCUAClient_:
             return []
 
     async def get_server_certificate(self):
-            opc_da_folder = await self._get_opc_da_folder()
+            opc_da_folder = await self._get_server_node_folder()
             if not opc_da_folder:
                 logging.error("get_server_certificate:  OPC_DA_Items folder not found")
                 return False
@@ -357,7 +358,7 @@ class _OPCUAClient_:
            
     async def restore_server_certificate(self):
         if not self.restore_server_cert_method:
-            opc_da_folder = await self._get_opc_da_folder()
+            opc_da_folder = await self._get_server_node_folder()
             items = await opc_da_folder.get_children()
             for item in items:
                 display_name = await item.read_display_name()
@@ -387,7 +388,7 @@ class _OPCUAClient_:
         return True
 
     async def browse(self):
-        opc_da_folder = await self._get_opc_da_folder()
+        opc_da_folder = await self._get_server_node_folder()
         if not opc_da_folder:
             logging.error("browse Error: OPC_DA_Items folder not found")
             return False
@@ -399,7 +400,7 @@ class _OPCUAClient_:
             node_id = item.nodeid
             display_name = await item.read_display_name()
             node_class = await item.read_node_class()
-            if node_class == ua.NodeClass.Method and display_name.Text == "write_to_opc_da":
+            if node_class == ua.NodeClass.Method and display_name.Text == "write_items":
                 self.write_method = item
                 logging.info(f"browse: Found write_to_opc_da method with NodeId: {node_id}")
             elif node_class == ua.NodeClass.Variable and display_name.Text == "LastErrorStatus":
@@ -440,7 +441,8 @@ class _OPCUAClient_:
 
 
     async def read(self, item_name):
-        ua_name = item_name.replace('/', '_')
+       # ua_name = item_name.replace('/', '_')
+        ua_name=item_name
         if ua_name in self.nodes_dict:
             node = self.nodes_dict[ua_name]
             try:
@@ -454,12 +456,12 @@ class _OPCUAClient_:
             logging.debug(f"Read: Node {ua_name} not found")
             return None
 
-    async def write(self, items, values):
+    async def write(self, values,items):
             if not self.write_method:
-                logging.error("write Error: write_to_opc_da method not available")
+                logging.error("write Error: write_items method not available")
                 return False
 
-            logging.info("write: Attempting to write values via write_to_opc_da...")
+            logging.info("write: Attempting to write values via write_items...")
             items_variant = ua.Variant(items, ua.VariantType.String)
             values_variant = ua.Variant([ua.Variant(val) for val in values], ua.VariantType.Variant)
 
@@ -467,7 +469,7 @@ class _OPCUAClient_:
                 try:
                     logging.info(f"write: Starting write attempt {attempt + 1} for items: {items}")
                     results = await asyncio.wait_for(
-                        self.client.nodes.objects.call_method(self.write_method.nodeid, items_variant, values_variant),
+                        self.client.nodes.objects.call_method(self.write_method.nodeid, values_variant,items_variant),
                         timeout=120  # 增加到 60 秒
                         
                     )
@@ -512,13 +514,13 @@ class _OPCUAClient_:
         
             return False
 
-    async def _get_opc_da_folder(self):
+    async def _get_server_node_folder(self):
         root = self.client.get_root_node()
         objects = self.client.get_objects_node()
         children = await objects.get_children()
         for child in children:
             display_name = await child.read_display_name()
-            if display_name.Text == "OPCDA.1":
+            if display_name.Text ==  self.server_node_foldeer:
                 return child
         return None
 
@@ -599,8 +601,8 @@ async def main():
         print(f'print the server from {client.name}...')
         await client.browse()
         print(f'read value to the server from {client.name}...')
-        await client.read("V1-IO/AI1_SCI1.EU100")
-       
+        result=await client.read("V1-IO/AI1_SCI1.EU100")
+        print(result)
         
         if client.name=='opcuaclient1': 
             print(f"{client.name} transfer client certificate.by call transfer_client_certificate...")
@@ -608,25 +610,30 @@ async def main():
             print(f'write value to the server from {client.name}....')
 
             write_items = ["V1-IO/AI1_SCI1.EU100","V1-AI-1/FS_CTRL1/MOD_DESC.CV"] 
-            write_values = [32764,"welcome"] 
+            write_values = [32766,"WELCOME"] 
             async with write_lock:  # 使用锁同步写操作
-                await client.write(write_items, write_values)
+                result=await client.write(write_values,write_items)
+                print(result)
             await asyncio.sleep(1)
             for item in write_items:
-                await client.read(item)
+                result= await client.read(item)
+                print(result)
 
         elif client.name=='opcuaclient2': 
             print(f'write value to the server from {client.name}....')
             write_items = ["V1-IO/AI1_SCI1.EU100","V1-AI-1/FS_CTRL1/MOD_DESC.CV"] 
             write_values = [32787,"helloworld"]
             async with write_lock:  # 使用锁同步写操作
-                await client.write(write_items, write_values)
+                result= await client.write(write_values,write_items)
+                print(result)
             await asyncio.sleep(1)
             for item in write_items:
-                await client.read(item)
+                result=await client.read(item)
+                print(result)
         else:
            print(f'read value  at {client.name}....')
-           await client.read("V1-AI-1/FS_CTRL1/MOD_DESC.CV")
+           result=await client.read("V1-AI-1/FS_CTRL1/MOD_DESC.CV")
+           print(result)
       
            
         

@@ -11,29 +11,23 @@ from datetime import datetime
 from typing import Dict, Optional, Tuple,List,Callable
 import msvcrt  # 用于非阻塞输入（Windows）
 class _OPCDA_:
-    def __init__(self, server_name: str = "OPC.DeltaV.1"):
+    def __init__(self, server_name: str = "OPC.DeltaV.1", client_name: str = "DefaultOPCDAClient"):
         # 获取当前脚本的目录
-        self.current_dir = os.path.dirname(os.path.abspath(__file__))
-        # 配置日志记录
-        self.log_file = os.path.join(self.current_dir, 'opc.log')
-        self.main_structure_file = os.path.join(self.current_dir, 'main_structure.bin')  # 修改为bin文件
-        logging.basicConfig(
-            filename=self.log_file,
-            level=logging.DEBUG,
-            format='%(asctime)s - %(levelname)s - %(message)s'
-        )
+       
+        
+  
         self.server_name = server_name
         self.opc = None
         self.browser = None
         self.groups = None
         self.last_callback_values = {}
-        self.client_name = "DefaultClient"  # 默认客户端名称
+        self.client_name = client_name # 默认客户端名称
         self.connected = False
         self.callback_handler = None  # Explicitly track callback handler
 
     def connect(self) -> bool:
         """连接到OPC服务器"""
-        logging.info(f"Attempting to connect to {self.server_name}")
+        logging.debug(f"_OPCDA_: Attempting to connect to {self.server_name}")
         try:
             self.opc = win32com.client.Dispatch("OPC.Automation")
             self.opc.Connect(self.server_name)
@@ -41,24 +35,24 @@ class _OPCDA_:
             self.groups = self.opc.OPCGroups  # 为read方法准备
             self.browser.MoveToRoot()
             self.connected = True
-            logging.info("Successfully connected to OPC server")
+            logging.info(f"_OPCDA_: Successfully connected to OPC server {self.server_name}")
            
             return True
         except Exception as e:
-            logging.error(f"Failed to connect to OPC server: {str(e)}")
+            logging.error(f"_OPCDA_: Failed to connect to OPC server  {self.server_name}: {str(e)}")
             return False
 
     def disconnect(self):
-        logging.info("Attempting to disconnect from OPC server")
+        logging.debug(F"Attempting to disconnect from OPC server {self.server_name}")
         if self.opc:
             try:
                 if self.groups and self.callback_handler:
                     self.stop_subscribe("SubscribeGroup")  # Ensure subscriptions are stopped
                 self.opc.Disconnect()
                 self.connected = False
-                logging.info("Successfully disconnected")
+                logging.info(f"_OPCDA_:Successfully disconnected to opc da server {self.server_name}")
             except Exception as e:
-                logging.warning(f"Disconnect failed: {str(e)}")
+                logging.warning(f"_OPCDA_:Disconnect to opc da server {self.server_name} failed: {str(e)}")
             finally:
                 # Explicitly release COM objects
                 if self.callback_handler:
@@ -81,16 +75,16 @@ class _OPCDA_:
             List[str]: 可用的属性和方法名称列表
         """
         if not self.opc or not self.groups:
-            logging.error("Not connected to any OPC server")
+            logging.error("_OPCDA_:Not connected to any OPC server")
             return []
 
         methods_and_attrs = dir(self.opc)
-        logging.info(f"Available methods and attributes for {self.server_name}: {methods_and_attrs}")
+        logging.debug(f"_OPCDA_:Available methods and attributes for {self.server_name}: {methods_and_attrs}")
         return methods_and_attrs
 
     def explore_server_details(self):
         if not self.opc or not self.groups:
-            logging.error("Not connected to any OPC server")
+            logging.error("_OPCDA_: Not connected to any OPC server")
             return
 
         try:
@@ -102,12 +96,12 @@ class _OPCDA_:
                 "BuildNumber": self.opc.BuildNumber,
                 "VendorInfo": self.opc.VendorInfo
             }
-            logging.info(f"Server status: {server_details}")
+            logging.debug(f"_OPCDA_: opc da Server {self.server_name} status: {server_details}")
             
           
             return server_details
         except Exception as e:
-            logging.error(f"Error accessing server details: {str(e)}")
+            logging.error(f"_OPCDA_: Error accessing opc da server  {self.server_name} details: {str(e)}")
             return {}
 
     def query_local_servers(self) -> List[str]:
@@ -119,23 +113,23 @@ class _OPCDA_:
         if not self.opc:
             # 如果未连接，先尝试连接默认服务器
             if not self.connect():
-                logging.error("Failed to connect to OPC server for querying")
+                logging.error(f"_OPCDA_: Failed to connect to OPC server {self.server_name} for querying")
                 return []
 
         try:
             # 调用 GetOPCServers 查询本地服务器
             servers = self.opc.GetOPCServers()
             server_list = list(servers) if servers else []
-            logging.info(f"Found {len(server_list)} OPC DA servers: {server_list}")
+            logging.debug(f"_OPCDA_: Found {len(server_list)} OPC DA servers: {server_list}")
             return server_list
         except Exception as e:
-            logging.error(f"Failed to query local OPC servers: {str(e)}")
+            logging.error(f"_OPCDA_: Failed to query local OPC servers: {str(e)}")
             return []
 
     def get_server_status(self) -> Dict[str, any]:
         """获取服务器状态和时间信息"""
         if not self.opc:
-            raise ConnectionError("Not connected to OPC server")
+            raise ConnectionError(f"_OPCDA_: Not connected to OPC server {self.server_name}")
         try:
             status = {
                 "ServerState": self.opc.ServerState,  # 1=Running, 2=Failed, etc.
@@ -144,10 +138,10 @@ class _OPCDA_:
                 "LastUpdateTime": self.opc.LastUpdateTime,
                 "ServerNode": self.opc.ServerNode
             }
-            logging.info(f"Server status: {status}")
+            logging.debug(f"_OPCDA_: Server {self.server_name} status: {status}")
             return status
         except Exception as e:
-            logging.error(f"Failed to get server status: {str(e)}")
+            logging.error(f"_OPCDA_:  Failed to get server {self.server_name} status: {str(e)}")
             return {}
 
     def format_server_status(self,status: Dict[str, any]) -> str:
@@ -163,13 +157,13 @@ class _OPCDA_:
     def set_client_name(self, name: str):
         """设置客户端名称"""
         if not self.opc:
-            raise ConnectionError("Not connected to OPC server")
+            raise ConnectionError(F" _OPCDA_:  Not connected to OPC DA server {self.server_name}")
         try:
             self.opc.ClientName = name
             self.client_name = name  # 记录本地值
-            logging.info(f"Client name set to: {name}")
+            logging.debug(f"_OPCDA_:  Client name set to: {name}")
         except Exception as e:
-            logging.error(f"Failed to set client name: {str(e)}")
+            logging.error(f"_OPCDA_: Failed to set client name: {str(e)}")
 
     def get_client_name(self) -> str:
         """获取当前设置的客户端名称"""
@@ -178,31 +172,31 @@ class _OPCDA_:
     def get_bandwidth(self) -> int:
         """获取服务器带宽使用情况"""
         if not self.opc:
-            raise ConnectionError("Not connected to OPC server")
+            raise ConnectionError(F"_OPCDA_:  Not connected to OPC DA server {self.server_name}")
         try:
             bandwidth = self.opc.Bandwidth
-            logging.info(f"Current bandwidth: {bandwidth}")
+            logging.info(f"_OPCDA_: OPC DA SEVER {self.server_name} Current bandwidth: {bandwidth}")
             return bandwidth
         except Exception as e:
-            logging.error(f"Failed to get bandwidth: {str(e)}")
+            logging.error(f"_OPCDA_: Failed to get OPC DA SEVER {self.server_name}  bandwidth: {str(e)}")
             return -1
     def get_error_description(self, error_code: int) -> str:
         if not self.opc:
-            raise ConnectionError("Not connected to OPC server")
+            raise ConnectionError(F"_OPCDA_: Not connected to OPC server {self.server_name} ")
         if isinstance(error_code, str) and error_code.startswith("0x"):
             error_code = int(error_code, 16)
         if error_code > 0x7FFFFFFF:
             error_code = error_code - 0x100000000
         try:
             if not (-2147483648 <= error_code <= 2147483647):
-                raise ValueError(f"Error code {error_code} out of valid range")
+                raise ValueError(f"_OPCDA_:Error code {error_code} out of valid range")
             error_code = ctypes.c_long(error_code).value
             desc = self.opc.GetErrorString(error_code)
-            logging.info(f"Error {error_code} (0x{error_code & 0xFFFFFFFF:08X}): {desc}")
+            logging.debug(f"_OPCDA_: Error {error_code} (0x{error_code & 0xFFFFFFFF:08X}): {desc}")
             return desc
         except Exception as e:
-            logging.error(f"Failed to get error string for {error_code} (0x{error_code & 0xFFFFFFFF:08X}): {str(e)}")
-            return f"Unknown error: {error_code} (0x{error_code & 0xFFFFFFFF:08X})"
+            logging.error(f"_OPCDA_:Failed to get error string for {error_code} (0x{error_code & 0xFFFFFFFF:08X}): {str(e)}")
+            return f"_OPCDA_: Unknown error: {error_code} (0x{error_code & 0xFFFFFFFF:08X})"
 
 
     
@@ -226,7 +220,7 @@ class _OPCDA_:
                     if item_name:
                         branches.append(item_name)
                 except pythoncom.com_error as e:
-                    logging.error(f"Failed to access branch {i}: {str(e)}")
+                    logging.error(f"_OPCDA_: Failed to access OPC DA SEVER {self.server_name}  branch {i}: {str(e)}")
                     continue
 
             browser.ShowLeafs()
@@ -239,7 +233,7 @@ class _OPCDA_:
                     if item_name:
                         leaves.append(item_name)
                 except pythoncom.com_error as e:
-                    logging.error(f"Failed to access leaf {i}: {str(e)}")
+                    logging.error(f"_OPCDA_:Failed to access  OPC DA SEVER {self.server_name} leaf {i}: {str(e)}")
                     continue
 
             for item_name in branches:
@@ -251,14 +245,14 @@ class _OPCDA_:
                     structure[item_name] = self.browse_level(browser, level + 1, max_level, full_path, structure[item_name])
                     browser.MoveUp()
                 except pythoncom.com_error as e:
-                    logging.error(f"MoveDown failed for {item_name}: {str(e)}")
+                    logging.error(f"_OPCDA_: MoveDown opc da server {self.server_name} failed for {item_name}: {str(e)}")
 
             for item_name in leaves:
                 full_path = f"{path}.{item_name}" if path else item_name
-                structure[item_name] = None
+                structure[item_name] = full_path
 
         except pythoncom.com_error as e:
-            logging.error(f"Browsing failed: {str(e)}")
+            logging.error(f"_OPCDA_: Browsing opc da server {self.server_name} failed: {str(e)}")
 
         return structure  # 返回当前结构
     
@@ -284,28 +278,30 @@ class _OPCDA_:
                 try:
                     browser.MoveDown(part)
                 except pythoncom.com_error as e:
-                    logging.error(f"Failed to move down to {part}: {str(e)}")
+                    logging.error(f"_OPCDA_: Failed to move down opc da server {self.server_name}  to {part}: {str(e)}")
                     return False
         return True
+    
+  
 
     def browse_items(self,browser, parent_path: str = "", max_level: int = 5) -> List[str]:
         """Browse OPC server items and return a flat list of paths."""
         if not self.opc:
-            raise ConnectionError("Not connected to OPC server")
+            raise ConnectionError(f"_OPCDA_: Not connected to OPC da server {self.server_name}")
         try:
             self.move_to_path(browser, parent_path)
-            logging.debug(f"Browser attributes: {dir(browser)}")
+            logging.debug(f"_OPCDA_: Browser OPC da server {self.server_name} attributes: {dir(browser)}")
             
             structure = self.browse_level(browser, 1, max_level, parent_path)
             
             items = self.flatten_structure(structure,parent_path)
             if not items:
-                logging.warning(f"No items found under {parent_path} up to level {max_level}")
+                logging.warning(f"_OPCDA_: No items found under {parent_path} up to level {max_level} for OPC da server {self.server_name} ")
             else:
-                logging.info(f"Items under {parent_path} up to level {max_level}: {items}")
+                logging.info(f"_OPCDA_: OPC da server {self.server_name} Items under {parent_path} up to level {max_level}: {items}")
             return items
         except Exception as e:
-            logging.error(f"Failed to browse items: {str(e)}")
+            logging.error(f"_OPCDA_: Failed to browse OPC da server {self.server_name} items: {str(e)}")
             return []
 
     def convert_paths(self,paths: list[str]) -> list[str]:
@@ -390,10 +386,12 @@ class _OPCDA_:
             del main[current_part]
 
         return main
-
+   
     def update_structure(self, new_structure, target_path="", main_structure_file=None, replace_empty=False):
         if main_structure_file is None:
-            main_structure_file = self.main_structure_file
+             current_dir = os.path.dirname(os.path.abspath(__file__))
+             main_structure_file =  os.path.join(current_dir, 'main_structure.bin')
+         
         try:
             if os.path.exists(main_structure_file):
                 with open(main_structure_file, 'rb') as f:
@@ -409,16 +407,19 @@ class _OPCDA_:
             #print(f"Updated structure: {main_structure}")
 
         except Exception as e:
-            logging.error(f"Failed to update main structure: {str(e)}")
+            logging.error(f"_OPCDA_: Failed to update main structure: {str(e)}")
             raise
 
-    def load_structure(self) -> Dict:
+    def load_structure(main_structure_file=None) -> Dict:
         """从bin文件加载结构"""
         try:
-            with open(self.main_structure_file, 'rb') as f:
+            if main_structure_file is None:
+                    current_dir = os.path.dirname(os.path.abspath(__file__))
+                    main_structure_file =  os.path.join(current_dir, 'main_structure.bin')
+            with open(main_structure_file, 'rb') as f:
                 return pickle.load(f)
         except Exception as e:
-            logging.error(f"Failed to load structure: {str(e)}")
+            logging.error(f"_OPCDA_: Failed to load  structure: {str(e)}")
             return {}
 
     def bin_to_json(self, output_json_path: str = None) -> Dict:
@@ -429,7 +430,7 @@ class _OPCDA_:
                 with open(output_json_path, 'w') as f:
                     json.dump(structure, f, indent=4)
             except Exception as e:
-                logging.error(f"Failed to convert to JSON: {str(e)}")
+                logging.error(f"_OPCDA_: Failed to convert to JSON: {str(e)}")
         return structure
 
     def read(self, item_paths: List[str], group_name: str = "TestGroup", update_rate: int = 1000) -> List[Tuple[any, int, str]]:
@@ -443,7 +444,7 @@ class _OPCDA_:
             List of Tuple(value, quality, timestamp): 每个项的值、质量、时间戳
         """
         if not self.opc or not self.groups:
-            raise ConnectionError("Not connected to OPC server")
+            raise ConnectionError(f"_OPCDA_: Not connected to OPC da server {self.server_name} ")
 
         try:
             # 创建并配置组
@@ -468,7 +469,7 @@ class _OPCDA_:
                     value, quality, timestamp = opc_item.Read(2)  # 2 = OPC_DS_DEVICE
                     results.append((value, quality, timestamp))
                 except Exception as e:
-                    logging.error(f"Failed to read {item_path}: {str(e)}")
+                    logging.error(f"_OPCDA_: Failed to read {item_path} from OPC da server {self.server_name} : {str(e)}")
                     results.append((None, -1, None))  # 用无效值表示读取失败
 
             # 清理组
@@ -476,7 +477,7 @@ class _OPCDA_:
             
             return results
         except Exception as e:
-            logging.error(f"Error reading items: {str(e)}")
+            logging.error(f"_OPCDA_: Error reading items from OPC da server {self.server_name}: {str(e)}")
             raise
         
     def write(self, item_paths: List[str], values: List, group_name: str = "TestGroup", update_rate: int = 1000) -> List[bool]:
@@ -484,10 +485,10 @@ class _OPCDA_:
         向OPC服务器批量写入多个指定项的值
         """
         if not self.opc or not self.groups:
-            raise ConnectionError("Not connected to OPC server")
+            raise ConnectionError(f"_OPCDA_: Not connected to OPC server  {self.server_name}")
 
         if len(item_paths) != len(values):
-            raise ValueError("Length of item_paths and values must match")
+            raise ValueError("_OPCDA_:Length of item_paths and values must match")
 
         try:
             group = self.groups.Add(group_name)
@@ -501,7 +502,7 @@ class _OPCDA_:
                     opc_item = group.OPCItems.AddItem(item_path, i)
                     opc_items.append((item_path, opc_item))
                 except Exception as e:
-                    logging.error(f"Failed to add item {item_path}: {str(e)}")
+                    logging.error(f"_OPCDA_: Failed to add item {item_path}: {str(e)}")
                     opc_items.append((item_path, None))
 
             results = []
@@ -511,10 +512,10 @@ class _OPCDA_:
                     continue
                 try:
                     opc_item.Write(value)
-                    logging.info(f"Successfully wrote {value} to {item_path}")
+                    logging.debug(f"_OPCDA_: Successfully wrote {value} to {item_path} to OPC da server  {self.server_name}")
                     results.append(True)
                 except Exception as e:
-                    logging.error(f"Failed to write {value} to {item_path}: {str(e)}")
+                    logging.error(f"_OPCDA_:Failed to write {value} to {item_path} to OPC da server  {self.server_name}: {str(e)}")
                     results.append(False)
 
             self.groups.Remove(group_name)
@@ -522,7 +523,7 @@ class _OPCDA_:
             return results
             
         except Exception as e:
-            logging.error(f"Error writing items: {str(e)}")
+            logging.error(f"_OPCDA_: Error writing items: {str(e)}")
             raise
   
     def poll(self, item_paths: List[str], interval: float = 1.0, max_count: Optional[int] = None, max_time: Optional[float] = None, callback: Optional[Callable[[List[str], List[Tuple[any, int, str]]], None]] = None) -> None:
@@ -536,19 +537,19 @@ class _OPCDA_:
             callback: 可选回调函数，接收路径列表和读取结果
         """
         if not self.opc or not self.groups:
-            raise ConnectionError("Not connected to OPC server")
+            raise ConnectionError(f"_OPCDA_: Not connected to OPC da server {self.server_name}")
 
-        print(f"Starting poll for {item_paths} every {interval} seconds")
+        logging.debug(f"Starting poll for {item_paths} every {interval} seconds")
         start_time = time.time()  # 记录开始时间
         count = 0  # 轮询计数器
 
         while True:
             # 检查停止条件
             if max_count is not None and count >= max_count:
-                print(f"Reached max count ({max_count}), stopping poll")
+                logging.debug(f"_OPCDA_: Reached max count ({max_count}), stopping poll")
                 break
             if max_time is not None and (time.time() - start_time) >= max_time:
-                print(f"Reached max time ({max_time} seconds), stopping poll")
+                logging.debug(f"_OPCDA_: Reached max time ({max_time} seconds), stopping poll")
                 break
 
             try:
@@ -561,14 +562,14 @@ class _OPCDA_:
                 count += 1
                 time.sleep(interval)
             except Exception as e:
-                logging.error(f"Polling error: {str(e)}")
+                logging.error(f"_OPCDA_:Polling error: {str(e)}")
                 break
 
-        print("Polling stopped")
+        
 
     def subscribe(self, item_paths: List[str], group_name: str = "SubscribeGroup", update_rate: int = 1000, callback: Optional[Callable[[List[str], List[Tuple[any, int, str]]], None]] = None) -> None:
         if not self.opc or not self.groups:
-            raise ConnectionError("Not connected to OPC server")
+            raise ConnectionError(f"_OPCDA_: Not connected to OPC da server {self.server_name}")
 
         try:
             group = self.groups.Add(group_name)
@@ -594,10 +595,10 @@ class _OPCDA_:
             self.callback_handler.callback = active_callback
             self.callback_handler.opc_items = opc_items
 
-            logging.info(f"Subscribed to {item_paths} with update rate {update_rate}ms")
-            print(f"Subscribed to {item_paths}, waiting for data changes...")
+            logging.debug(f"_OPCDA_:Subscribed to {item_paths} with update rate {update_rate}ms from OPC da server {self.server_name}")
+          
         except Exception as e:
-            logging.error(f"Subscription error: {str(e)}")
+            logging.error(f"_OPCDA_: Subscription error from OPC da server {self.server_name}: {str(e)}")
             raise
 
     def stop_subscribe(self, group_name: str = "SubscribeGroup"):
@@ -609,17 +610,17 @@ class _OPCDA_:
                         if self.callback_handler:
                             del self.callback_handler  # Release event handler
                             self.callback_handler = None
-                        logging.info(f"Subscription {group_name} stopped successfully")
-                        print(f"Subscription {group_name} stopped")
+                        logging.debug(f"_OPCDA_: Subscription {group_name} stopped successfully from OPC da server {self.server_name}")
+                      
                         return
-                logging.warning(f"Group {group_name} not found in OPCGroups")
-                print(f"Group {group_name} not found, nothing to stop")
+                logging.warning(f"_OPCDA_: Group {group_name} not found in OPCGroups from OPC da server {self.server_name}")
+               
             except Exception as e:
-                logging.error(f"Failed to stop subscription {group_name}: {str(e)}")
-                print(f"Failed to stop subscription {group_name}: {str(e)}")
+                logging.error(f"_OPCDA_: Failed to stop subscription {group_name}  from OPC da server {self.server_name} : {str(e)}")
+              
         else:
-            logging.warning("No OPC groups available to stop")
-            print("No OPC groups available")
+            logging.warning("_OPCDA_: No OPC groups available to stop")
+         
         
     def get_last_subscribe(self) -> str:
         """获取当前设置的客户端名称"""
@@ -633,7 +634,7 @@ class _OPCDA_:
         for path, (value, quality, timestamp) in zip(paths, results):                  
             last_value = self.last_callback_values.get(path)
             if last_value != value and value is not None:
-                print(f"Poll/Subscribe {path}: Value={value}, Quality={quality}, Timestamp={timestamp}")  
+                print(f"_OPCDA_: Poll/Subscribe {path}: Value={value}, Quality={quality}, Timestamp={timestamp}")  
                 self.last_callback_values[path] = value
                
                
@@ -712,10 +713,10 @@ def main():
             target_path = "MODULES.AREA_V4.V4-EM.V4-AI-2.FS_CTRL1"
             print(f"Updating target path {target_path} structure,it may take a while...")
             if opc_da.move_to_path(opc_da.browser, target_path):
-                max_level = 6
+                max_level = 1
                 structure = {}
                 structure = opc_da.browse_level(opc_da.browser, 1, max_level, target_path, structure)
-              
+                print(structure)
                 opc_da.update_structure(structure, target_path)
             else:
                 logging.error(f"Failed to move to {target_path}")
@@ -737,7 +738,8 @@ def main():
             print(f"Target path {target_path} update completed in {elapsed_time:.2f} seconds")
             print()
             # 测试bin转json
-            json_output = os.path.join(opc_da.current_dir, 'main_structure.json')
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            json_output = os.path.join(current_dir, 'main_structure.json')
             structure= opc_da.bin_to_json(json_output)
             print(f"JSON structure saved to {json_output}")
           
@@ -955,4 +957,12 @@ def main():
         opc_da.disconnect()
 
 if __name__ == "__main__":
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    log_file = os.path.join(base_dir,'opcuda.log')
+    logging.basicConfig(
+            filename=log_file,
+            level=logging.DEBUG,
+            format='%(asctime)s - %(levelname)s - %(message)s'
+        )
+
     main()
