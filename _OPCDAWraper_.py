@@ -25,7 +25,7 @@ from concurrent.futures import ThreadPoolExecutor
 from queue import Queue, Empty
 from _OPCDA_ import _OPCDA_, OPCDADataCallback
 
-
+import copy
 
 class CustomUserManager:
 
@@ -345,7 +345,7 @@ class _OPCDAWrapper_:
                 "application_uri": self.application_uri,
                 "idx": self.idx,
                 "endpoint": self.endpoint,
-                "version": '1.0.9',
+                "version": '1.0.10',
                 "VendorInfo": 'Juda.monster'
             }
     class Cert:
@@ -839,6 +839,16 @@ class _OPCDAWrapper_:
                 self.node.idx, "restart_server", self.restart,
                 [], [ua.VariantType.Boolean]
             ),
+            
+            "add_nodes_from_json": await self.node.da_folder.add_method(
+                self.node.idx, "add_nodes_from_json", self.add_nodes_from_json,
+                [ua.VariantType.ByteString], [ua.VariantType.Boolean]
+            ),
+            "export_nodes_to_json": await self.node.da_folder.add_method(
+                self.node.idx, "export_nodes_to_json", self.export_nodes_to_json,
+                [], [ua.VariantType.String]
+            ),
+
 
             "add_item": await self.node.da_folder.add_method(  
                 self.node.idx, "add_item", self.update_item,
@@ -909,18 +919,25 @@ class _OPCDAWrapper_:
             last_values = {}
             logging.debug(f"_OPCDAWrapper_.add_items: try to  add items node for {items} at {base_path}...")
 
-            await self.async_poll(items, interval=1.0, max_time=2.0)
-       
+            await self.async_poll(items, interval=1, max_time=3.0)
+            
             
 
-            for item in items:             
+            for item in items: 
+                data = None
+                timeout = 3.0
+                start_time = time.time()
+                while data is None and time.time() - start_time < timeout:
+                        data = self.callback.get_data(item)
+                        if data is None:
+                            await asyncio.sleep(0.1)  # 短暂等待     
                 data = self.callback.get_data(item)              
                 if data and data[1] != 0:  # 检查数据有效性
                     if item not in self.node.items:
                         self.node.items.append(item)
                         logging.debug(f"_OPCDAWrapper_.add_items: Added {item} to self.node.items")
                     value, quality, timestamp = data
-                    status = ua.StatusCode(ua.StatusCodes.Good) if quality == 192 else ua.StatusCode(ua.StatusCodes.Bad)                   
+                    status = ua.StatusCode(ua.StatusCodes.Good) if quality > 127 else ua.StatusCode(ua.StatusCodes.Bad)                   
                     # 处理时间戳
                     if isinstance(timestamp, str):
                         try:
@@ -1036,7 +1053,7 @@ class _OPCDAWrapper_:
                     data = self.callback.get_data(item)              
                     if data and data[1] != 0:  # 检查数据有效性
                         value, quality, timestamp = data
-                        status = ua.StatusCode(ua.StatusCodes.Good) if quality == 192 else ua.StatusCode(ua.StatusCodes.Bad)                   
+                        status = ua.StatusCode(ua.StatusCodes.Good) if quality > 127 else ua.StatusCode(ua.StatusCodes.Bad)                   
                         # 处理时间戳
                         if isinstance(timestamp, str):
                             try:
@@ -1132,7 +1149,157 @@ class _OPCDAWrapper_:
             logging.error(f"_OPCDAWrapper_.poll_item: Failed to poll item {item}: {str(e)}")
             await self.node.last_error_desc.write_value(f"_OPCDAWrapper_.poll_item: Failed to poll item {item}, Error Occurred: {str(e)}")
             return [ua.Variant(False, ua.VariantType.Boolean)]
-     
+ 
+    async def _get_node_path(self, node) -> str:
+            """Helper to get the full path of a node based on self.node.folders."""
+            for path, n in self.node.folders.items():
+                if n.nodeid == node.nodeid:
+                    return path
+            # If not found in folders, use the browse name at the root level
+            browse_name = await node.read_browse_name()
+            return browse_name.Name if browse_name.NamespaceIndex == self.node.idx else ""
+
+    def _get_folder_path_for_item(self, item_path: str, current_node_path: str) -> str:
+        """Determine the intended folder path for an item based on self.node.folders."""
+        # Find the longest matching folder path that this item belongs to
+        item_parts = item_path.split('.')
+        for folder_path in sorted(self.node.folders.keys(), key=len, reverse=True):
+            if item_path.startswith(folder_path) and folder_path != item_path:
+                return folder_path
+        # If no folder matches, it belongs at the current level or root
+        return current_node_path
+
+    async def _build_node_structure(self, node) -> Dict:
+                structure = {}
+                items_list = []  # To collect variables at this level
+                children = await node.get_children()
+                logging.debug(f"_build_node_structure: Node={await node.read_browse_name()}, Children={[await child.read_browse_name() for child in children]}")
+
+                # Get the current node's path for comparison
+                current_node_path = await self._get_node_path(node)
+
+                for child in children:
+                    child_name = await child.read_browse_name()
+                    name = child_name.Name
+                    node_class = await child.read_node_class()
+                    logging.debug(f"_build_node_structure: Child={name}, NodeClass={node_class}")
+
+                    if node_class == ua.NodeClass.Object:
+                        # Recursively build sub-structure for folders
+                        sub_structure = await self._build_node_structure(child)
+                        if sub_structure:  # Only add non-empty sub-structures
+                            structure[name] = sub_structure
+                    elif node_class == ua.NodeClass.Variable:
+                        # Find the full path from self.node.nodes
+                        item_path = next((path for path, n in self.node.nodes.items() if n.nodeid == child.nodeid), name)
+                        # Determine the intended folder path for this item
+                        item_folder_path = self._get_folder_path_for_item(item_path, current_node_path)
+                        
+                        if item_folder_path == current_node_path or not item_folder_path:
+                            # This item belongs directly at this level
+                            if item_path not in items_list:
+                                items_list.append(item_path)
+                        else:
+                            # Navigate to the correct sub-folder
+                            relative_path = item_folder_path[len(current_node_path) + 1:] if current_node_path else item_folder_path
+                            path_parts = relative_path.split('.')
+                            current = structure
+                            for part in path_parts:
+                                if part not in current:
+                                    current[part] = {}
+                                current = current[part]
+                            if "ITEMS" not in current:
+                                current["ITEMS"] = []
+                            if item_path not in current["ITEMS"]:
+                                current["ITEMS"].append(item_path)
+
+                if items_list:
+                    structure["ITEMS"] = items_list
+
+                logging.debug(f"_build_node_structure: Built structure={structure}")
+                return structure
+    async def _process_json_structure(self, structure: Dict, base_path: str):
+              
+                try:
+                    for key, value in structure.items():
+                        # 处理当前路径
+                        current_path = f"{base_path}.{key}" if base_path else key
+                        
+                        # 处理 value
+                        if isinstance(value, list):
+                            # 如果 value 是列表，添加项
+                            if value:  # 仅对非空列表处理                       
+                                await self.add_items(value, current_path)
+                        
+                        elif isinstance(value, dict):
+                            # 如果 value 是字典，继续递归
+                            if value:  # 仅对非空字典递归
+                                await self._process_json_structure(value, current_path)
+                except Exception as e:
+                        logging.error(f"_OPCDAWrapper_._process_json_structure: Failed at {base_path}: {str(e)}")
+                        raise  # 或者根据需求决定是否抛出
+                           
+                    
+    async def add_nodes_from_json(self, parent, json_data_variant) -> list:
+                """
+                OPC UA 方法：从客户端上传的 JSON 文件添加节点
+                输入参数：json_data (ByteString) - JSON 文件内容
+                返回值：[Boolean] - True 表示成功，False 表示失败
+                """
+                userrole = await self._get_current_userrole()
+                if not self.user_manager.check_method_permission(50, userrole):
+                    logging.warning(f"_OPCDAWrapper_.add_nodes_from_json: Unauthorized attempt to add nodes from JSON")
+                    await self.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+                    await self.node.last_error_desc.write_value("Unauthorized attempt to add nodes from JSON")
+                    raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
+
+                try:
+                    # 从 ByteString 获取 JSON 数据
+                    json_data = json_data_variant.Value.decode('utf-8')
+
+                    structure = json.loads(json_data)
+                    logging.debug(f"_OPCDAWrapper_.add_nodes_from_json: Received JSON structure: {json.dumps(structure, indent=2)}")
+                  
+                    # 从根节点开始处理整个 JSON 结构
+                    asyncio.create_task(self._process_json_structure(structure, ""))
+                    
+                   
+                    return [ua.Variant(True, ua.VariantType.Boolean)]
+                except json.JSONDecodeError as e:
+                    logging.error(f"_OPCDAWrapper_.add_nodes_from_json: Invalid JSON format: {str(e)}")
+                    await self.node.last_error_desc.write_value(f"Invalid JSON format: {str(e)}")
+                    return [ua.Variant(False, ua.VariantType.Boolean)]
+                except Exception as e:
+                    logging.error(f"_OPCDAWrapper_.add_nodes_from_json: Error processing JSON: {str(e)}")
+                    await self.node.last_error_desc.write_value(f"Error processing JSON: {str(e)}")
+                    return [ua.Variant(False, ua.VariantType.Boolean)] 
+
+    async def export_nodes_to_json(self, parent) -> list:
+        """
+        OPC UA 方法：导出当前节点结构到 JSON
+        返回值：[String] - JSON 格式的节点结构
+        """
+        userrole = await self._get_current_userrole()
+        if not self.user_manager.check_method_permission(50, userrole):
+            logging.warning(f"_OPCDAWrapper_.export_nodes_to_json: Unauthorized attempt to export nodes")
+            await self.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+            await self.node.last_error_desc.write_value("Unauthorized attempt to export nodes")
+            raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
+
+        try:
+            # 构建节点结构的 JSON 表示
+            node_structure = await self._build_node_structure(self.node.da_folder)
+            logging.debug(node_structure)
+            json_data = json.dumps(node_structure, indent=2)
+            logging.debug(f"_OPCDAWrapper_.export_nodes_to_json: Exported structure: {json_data}")
+            return [ua.Variant(json_data, ua.VariantType.String)]
+        except Exception as e:
+            logging.error(f"_OPCDAWrapper_.export_nodes_to_json: Error exporting nodes: {str(e)}")
+            await self.node.last_error_desc.write_value(f"Error exporting nodes: {str(e)}")
+            raise
+
+
+
     async def create_structure(self,parent_node,structure: Dict = None, base_path: str = None):
             """Recursively create folder structure in OPC UA based on OPC DA structure."""
             start_time = time.time()
@@ -1211,10 +1378,10 @@ class _OPCDAWrapper_:
                         [],  # 输入参数为空
                         [ua.VariantType.String]  # 返回值类型
                     )
-                    logging.debug(f"_OPCDAWrapper_.create_folder:node create for base_path={base_path}, node={node}")    
+                    logging.debug(f"_OPCDAWrapper_.create_folder:node {path} create for base_path={base_path}, node={node}")    
                 else:
                     node = self.node.folders[path]
-                    logging.debug(f"_OPCDAWrapper_.create_folder:node already existed for base_path={base_path}, node={node}")    
+                    logging.debug(f"_OPCDAWrapper_.create_folder:node {path} already existed for base_path={base_path}, node={node}")    
                      
             return  node
     async def broswe_folder(self,max_level:int=1,base_path: str= ""):
@@ -1372,7 +1539,7 @@ class _OPCDAWrapper_:
                 try:
                     poll_data = self.opcdastack.poll_queue.get_nowait()
                     items_to_poll, interval, max_count, max_time = poll_data
-                    logging.info(f"_OPCDAWrapper_.opc_da_thread:Starting poll for {items_to_poll} every {interval} seconds")
+                    logging.debug(f"_OPCDAWrapper_.opc_da_thread:Starting poll for {items_to_poll} every {interval} seconds")
                     start_time = time.time()
                     count = 0
                     while self.event.polling.is_set() and not self.event.shutdown.is_set() and (max_count is None or count < max_count) and (max_time is None or time.time() - start_time < max_time):
@@ -1383,7 +1550,7 @@ class _OPCDAWrapper_:
                             logging.error(f"_OPCDAWrapper_.opc_da_thread:Poll read error: {str(e)}")
                         count += 1
                         time.sleep(interval)
-                    logging.info("_OPCDAWrapper_.opc_da_thread:Polling completed")
+                    logging.debug("_OPCDAWrapper_.opc_da_thread:Polling completed")
                     self.event.polling.clear()
                 except Empty:
                     pass
@@ -1444,7 +1611,7 @@ class _OPCDAWrapper_:
         try:
             await asyncio.wait_for(self._wait_for_polling(), timeout=max_time or 120)
         except asyncio.TimeoutError:
-            logging.warning(f"_OPCDAWrapper_.async_poll:Polling for {items} timed out ")
+            logging.debug(f"_OPCDAWrapper_.async_poll:Polling for {items} timed out ")
            
             self.event.polling.clear()
         logging.debug(f"_OPCDAWrapper_.async_poll:Poll task for {items} exited at {time.strftime('%H:%M:%S')}")
@@ -1485,7 +1652,7 @@ class _OPCDAWrapper_:
 
     def custom_callback(self, paths: List[str], results: List[Tuple[any, int, str]]):
         for path, (value, quality, timestamp) in zip(paths, results):
-            if quality == 192:
+            if quality > 127:
                 self.callback.data[path] = (value, quality, timestamp)
                 print(f"_OPCDAWrapper_.custom_callback:Poll/Subscribe: {path} = {value}, Quality={quality}, Timestamp={timestamp}")
                 logging.debug(f"_OPCDAWrapper_.custom_callback: {path} = {value}, Quality={quality}, Timestamp={timestamp}")
