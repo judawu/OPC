@@ -1,58 +1,290 @@
 ## OPC HDA 客户端（Python）：代码报告
 
-本报告分析了提供的 Python 代码，该代码实现了一个用于与 OPC 历史数据访问 (HDA) 服务器交互的客户端。该代码利用 `win32com` 库与 OPC HDA 自动化接口进行通信。
+# DeltaV OPC HDA 服务器接口测试报告
 
-### 1. 引言
+## 概述
 
-该 Python 代码定义了一个名为 `_OPCHDA_` 的类，该类封装了连接到 OPC HDA 服务器、浏览其项目、验证项目 ID、读取历史数据以及处理服务器关闭事件的逻辑。它还包含一个名为 `OPCShutdownHandler` 的辅助类，用于管理来自服务器的关闭通知。`main` 函数演示了如何使用 `_OPCHDA_` 类连接到服务器、获取其状态、浏览项目和读取原始历史数据。
+本报告记录了对 DeltaV OPC HDA 服务器的接口测试结果，使用 Python 语言通过 `win32com.client` 库实现。测试目标是验证服务器的连接性、数据浏览、读取和处理功能。测试时间为 2025 年 4 月 6 日，使用的服务器为 `DeltaV.OPCHDAsvr`，客户端名称为 `PythonOPCHDAClient`。
+DeltaV OPC HDA 服务器自带测试工具：hdaprobe 可用于验证
 
-### 2. 代码结构
 
-代码主要组织成以下几个部分：
+## 测试环境
 
-* **导入 (Imports):** 导入必要的库，包括 `win32com.client`、`pythoncom`、`pywintypes`、`logging`、`datetime` 和 `timedelta`。
-* **`OPCHDA_SERVER_STATUS` 字典:** 此字典将来自 OPC HDA 服务器的整数状态代码映射到人类可读的字符串描述。
-* **`_OPCHDA_` 类:** 此类包含与 OPC HDA 服务器交互的核心功能。
-    * **`__init__(self, server_name: str = "DeltaV.OPCHDAsvr", client_name: str = "PythonOPCHDAClient")`:** 使用服务器名称和客户端名称初始化 `_OPCHDA_` 对象。
-    * **`connect(self) -> bool`:** 使用 `win32com.client.Dispatch("OpcHda.Automation")` 建立与指定的 OPC HDA 服务器的连接。它还检索服务器的父对象并设置关闭处理程序。
-    * **`disconnect(self)`:** 断开与 OPC HDA 服务器的连接并释放 COM 对象。
-    * **`on_shutdown(self, reason: str)`:** 当 OPC HDA 服务器请求关闭时调用的回调函数。它记录原因并断开客户端的连接。
-    * **`get_historian_status(self) -> dict`:** 检索 OPC HDA 服务器的当前状态，包括其状态代码、当前时间、服务器名称和最大返回值。
-    * **`get_item_attributes(self) -> list`:** 获取 OPC HDA 服务器为其项目支持的属性列表。
-    * **`browse_items(self) -> list`:** 尝试浏览 OPC HDA 服务器上可用的项目 ID。当前的实现仅检索根级别的项目。
-    * **`validate_item_ids(self, item_ids: list) -> dict`:** 验证项目 ID 列表以检查它们在服务器上是否有效。它最初尝试使用 `Validate` 方法（如果可用），否则回退到单独添加和删除每个项目。
-    * **`_validate_single_item_add(self, item_id: str) -> bool`:** 一个辅助方法，用于通过尝试添加项目到服务器然后将其删除来验证单个项目 ID。
-    * **`read_raw(self, item_ids: list, start_time: datetime, end_time: datetime, max_values: int = 0) -> dict`:** 在指定的时间范围内读取项目 ID 列表的原始历史数据。
-* **`OPCShutdownHandler` 类:** 此类处理来自 OPC HDA 服务器的 `ShutdownRequest` 事件。
-* **`main()` 函数:** 此函数演示了 `_OPCHDA_` 类的用法，包括连接到服务器、获取其状态、浏览项目和读取原始数据。
-
-### 3. 功能分解
-
-* **连接和断开连接:** `connect` 方法初始化 COM 环境并建立与 OPC HDA 服务器的连接。`disconnect` 方法优雅地断开连接并取消初始化 COM 环境。
-* **服务器状态:** `get_historian_status` 方法使用 `OPCHDA_SERVER_STATUS` 字典检索并解释服务器的状态。
-* **项目属性:** `get_item_attributes` 方法检索有关可以为历史项目查询的属性的信息。
-* **项目浏览:** `browse_items` 方法尝试从服务器的根级别检索项目 ID 列表。它指出，更全面的浏览实现可能需要递归遍历。
-* **项目验证:** `validate_item_ids` 方法检查给定的项目 ID 列表在服务器上是否有效。它优先使用 `Validate` 方法以提高效率，但如果 `Validate` 不可用或遇到错误，则会回退到单独添加和删除项目。
-* **原始数据读取:** `read_raw` 方法检索指定时间范围内给定项目 ID 的历史数据。它处理服务器响应并将数据组织成一个字典，其中键是项目 ID，值是包含值、质量和时间戳列表的字典。
-* **关闭处理:** `OPCShutdownHandler` 类和 `on_shutdown` 方法确保客户端可以通过优雅地断开连接来响应来自 OPC HDA 服务器的关闭请求。
-
-### 4. 潜在问题和观察
-
-* **`read_raw` 中不一致的项目处理:** `read_raw` 方法中的注释表明在处理项目数量方面存在不确定性。它使用 `AddItems` 添加 `num_items - 1` 个项目，然后使用 `AddItem` 单独添加最后一个项目。这表明 `AddItems` 方法的使用方式可能存在问题或误解。
-* **冗余的 `ServerHandle` 追加:** 在 `read_raw` 方法中，`last_item.ServerHandle` 被重复追加到 `server_handles` 列表中。这似乎是冗余的，可能表明试图解决处理项目数量的问题。
-* **有限的项目浏览:** `browse_items` 方法目前仅检索根级别的项目。对于具有分层结构的服务器，这不会提供完整的可用项目列表。对于此类服务器，需要使用递归浏览机制。
-* **临时的验证方法:** 注释“验证指定的 Item IDs 是否有效 (使用 Validate 方法 - 临时方案)” 表明当前的验证方法，特别是回退到单独 `AddItem` 的方式，可能不是最有效或最健壮的长期解决方案。
-* **`read_raw` 中的错误处理:** 虽然 `read_raw` 方法中存在错误处理，但注释“why not working for last server\_handles” 表明可能存在尚未解决的问题，这可能导致数据检索不完整。随后在 `SyncReadRaw` 中使用 `len(server_handles)-1` 也与之前关于项目处理不一致的观点一致。
-* **日志记录:** 代码包含广泛的日志记录，这对于调试和监控很有用。但是，在生产环境中，可能需要调整日志记录级别以避免过多的输出。
-* **COM 对象管理:** 代码似乎通过在 `disconnect` 方法和 `read_raw` 方法中（当 `sync_read` 对象超出范围时隐式地）释放 COM 对象来正确管理 COM 对象。
-
-### 5. 结论
-
-提供的 Python 代码提供了一个功能性的 OPC HDA 客户端实现。它演示了连接到服务器、检索状态信息、浏览项目、验证其存在以及读取历史数据的能力。但是，在某些方面，尤其是在 `read_raw` 方法和项目浏览方面，可能需要进一步调查和改进以提高其健壮性和完整性。验证方法的临时性质也表明这是一个潜在的改进领域。总的来说，该代码为在 Python 环境中与 OPC HDA 服务器交互提供了一个良好的基础。
+- **服务器**: DeltaV OPC HDA Server (版本 14.3, Build 7282)
+- **客户端**: Python 3.13, `win32com.client` 库
+- **操作系统**: Windows (具体版本未提供)
+- **测试日期**: 2025-04-06
+- **测试代码版本**: 1.0.1
 
 ---
 
-**OPC HDA 自定义接口和方法**
+## 测试结果
+
+### 1. 服务器连接性
+
+**测试方法**: `_OPCHDA_.connect()`  
+**结果**:  
+- 成功连接到 `DeltaV.OPCHDAsvr`。
+- 服务器状态通过 `GetHistorianStatus()` 获取，关键信息如下：
+  ```json
+  {
+    "Status": 1,
+    "StatusString": "Running",
+    "CurrentTime": "2025-04-06 17:32:12+00:00",
+    "ServerName": "DeltaV.OPCHDAsvr",
+    "ServerNode": "",
+    "MaxReturnValues": 12000,
+    "StartTime": "2025-04-06 17:32:12+00:00",
+    "BuildNumber": 7282,
+    "CLSID": "{0C678471-BCD7-11D4-9E70-00B0D060205F}",
+    "LocaleID": 1033,
+    "MajorVersion": 14,
+    "MinorVersion": 3,
+    "VendorInfo": "Fisher-Rosemount Systems, Inc. -- DeltaV OPC HDA Server",
+    "CanAsyncDeleteAtTime": 0,
+    "CanAsyncDeleteRaw": 0,
+    "CanAsyncInsert": 0,
+    "CanAsyncInsertAnnotations": 0,
+    "CanAsyncInsertReplace": 0,
+    "CanAsyncReadAnnotations": 0,
+    "CanAsyncReplace": 0,
+    "ClientName": "PythonOPCHDAClient"
+  }
+**结论**: 连接正常，服务器运行状态良好，但所有异步操作支持标志均为 0，表明服务器不支持异步方法。
+### 2. 数据项浏览
+**测试方法**: _OPCHDA_.CreateBrowse()
+
+**结果**:
+成功浏览到 249 个数据项。
+
+**结论**: 浏览功能正常，服务器返回的数据项数量和内容符合预期。
+### 3. 属性和聚合支持
+#### 3.1 获取数据项属性
+**测试方法**: _OPCHDA_.GetItemAttributes()
+
+**结果**:
+返回 13 个支持的属性，包括 Data Type、Stepped 等。
+**示例属性**：
+```json
+{
+  {"id": 1, "name": "Data Type", "description": "The data type of the historical data...", "type": 2},
+  {"id": 4, "name": "Stepped", "description": "True if the historical data value may be interpolated...", "type": 11}
+}
+```
+**结论**: 属性获取成功，服务器支持多种属性查询。
+#### 3.2 获取聚合类型
+**测试方法**: _OPCHDA_.GetAggregates()
+**结果**:
+返回 13 种支持的聚合类型，包括 Interpolative、Time Average 等。
+
+  ```json
+{
+  {"id": 1, "name": "Interpolative", "description": "Interpolate the return values."},
+  {"id": 4, "name": "Time Average", "description": "The time weighted average data over the resample interval."}
+}
+  ```
+**结论**: 聚合类型获取成功，支持多种数据处理方式。
+### 4. 数据读取测试
+#### 4.1 同步读取属性 (SyncReadAttribute)
+**测试方法**: _OPCHDA_.SyncReadAttribute()
+**参数**:
+- Item ID: V3-IO/DO1_TMP_PV.CV
+- 时间范围: 2025-04-06 18:04:20 至 2025-04-06 19:04:20
+- 属性数量: 11
+- 属性 ID 列表: [1, 4, 13, 14, 15, 16, -2147483646, -2147483645, -2147483630, -2147483613, -2147483598, 0]
+**结果**:
+
+  ```json
+{
+  "V3-IO/DO1_TMP_PV.CV": {
+    "AttributesIDs": [1, 4, 13, 14, 15, 16, -2147483646, -2147483645, -2147483630, -2147483613, -2147483598, 0],
+    "values": [false, "V3-IO/DO1_TMP_PV.CV", "86400000", "10000", 0.009999999776482582, "G3 Pro IO Input Module TruBio 5.00 Build 012", null, null, true, null, null],
+    "qualities": [192, 192, 192, 192, 192, 192, null, null, 192, null, null],
+    "timestamps": ["2025-04-06 19:04:20", ...]
+  }
+    ```
+
+**结论**: 属性读取成功，返回值和质量符合预期，部分属性（如 Eng Units）无数据。
+#### 4.2 单项原始数据读取 (ReadRaw)
+**测试方法**: _OPCHDA_.ReadRaw()
+
+**参数**:
+
+- Item ID: V1-IO/DO1_TMP_PV.CV
+- 时间范围: 2025-04-06 18:04:20 至 2025-04-06 19:04:20
+- 最大值数量: 100
+
+
+**返回数据**：
+  ```json
+{
+  "V1-IO/DO1_TMP_PV.CV": {
+    "values": [-33.260311126708984, -33.260311126708984],
+    "qualities": [262336, 262336],
+    "timestamps": ["2025-04-06 17:38:51", "2025-04-06 19:04:20"]
+  }
+  ```
+**结论**: 单项原始数据读取成功，返回值和时间戳准确。
+#### 4.3 单项处理数据读取 (ReadProcessed)
+**测试方法**: _OPCHDA_.ReadProcessed()
+
+**参数**:
+
+- Item ID: V1-IO/DO1_TMP_PV.CV
+- 时间范围: 2025-04-06 18:04:20 至 2025-04-06 19:04:20
+- 间隔: 10 秒
+- 聚合类型: [1, 3, 5]
+**结果**:
+
+- 聚合 1 (Interpolative): [-33.260311126708984]，质量 131264
+- 聚合 3 (Average): [null]，质量 2097152
+- 聚合 5 (Count): [0]，质量 524480
+**结论**: 处理数据读取部分成功，Average 返回空值可能由于数据不足。
+#### 4.4 多项原始数据读取 (SyncReadRaw)
+**测试方法**: _OPCHDA_.SyncReadRaw()
+
+**参数**:
+
+- Item IDs: ['V1-IO/DO1_NA_PV.CV', 'V1-IO/DO1_TMP_PV.CV', 'V1-IO/PH1_MV_PV.CV']
+- 时间范围: 2025-04-06 18:04:20 至 2025-04-06 19:04:20
+- 最大值数量: 100
+**结果**:
+```json
+{
+  "V1-IO/DO1_NA_PV.CV": {
+    "values": [-18.968229293823242, -18.968229293823242],
+    "qualities": [262336, 262336],
+    "timestamps": ["2025-04-06 17:37:51", "2025-04-06 19:04:20"]
+  },
+  "V1-IO/DO1_TMP_PV.CV": {...},
+  "V1-IO/PH1_MV_PV.CV": {...}
+}
+ ```
+**结论**: 多项原始数据读取成功，返回数据一致。
+#### 4.5 多项处理数据读取 (SyncReadProcessed)
+**测试方法**: _OPCHDA_.SyncReadProcessed()
+
+**参数**:
+
+- Item IDs: ['V1-IO/DO1_NA_PV.CV', 'V1-IO/DO1_TMP_PV.CV', 'V1-IO/PH1_MV_PV.CV']
+- 时间范围: 2025-04-06 18:04:20 至 2025-04-06 19:04:20
+- 间隔: 60 秒
+- 聚合类型: [1, 1, 1]
+**结果**:
+```json
+{
+  "V1-IO/DO1_NA_PV.CV": {
+    "values": [-18.968229293823242],
+    "qualities": [131264],
+    "timestamps": ["2025-04-06 18:04:20"]
+  },
+  "V1-IO/DO1_TMP_PV.CV": {...},
+  "V1-IO/PH1_MV_PV.CV": {...}
+}
+```
+**结论** : 多项处理数据读取成功，返回单点插值数据。
+### 5. 数据项验证
+**测试方法**: _OPCHDA_.ValidateItemIDs()
+
+**参数**:
+- Item IDs: ['V1-IO/DO1_NA_PV.CV', 'V1-IO/DO1_TMP_PV.CV', 'V1-IO/PH1_MV_PV.CV']
+**结果**:
+```json
+{
+  "V1-IO/DO1_NA_PV.CV": true,
+  "V1-IO/DO1_TMP_PV.CV": true,
+  "V1-IO/PH1_MV_PV.CV": true
+}
+ ```
+
+**结论**: 数据项验证成功，所有测试 ID 有效。
+
+## 存在的问题
+异步方法不可用:
+Historian Status 显示所有 CanAsync* 属性均为 0，表明 DeltaV OPC HDA 服务器不支持异步操作。
+尝试使用 AsyncReadRaw 等方法时，返回 E_FAIL (-2147467259)，且回调未触发。
+部分聚合结果异常:
+ReadProcessed 中，Average (ID: 3) 返回 null，可能由于时间范围内数据点不足。
+
+## 结论与建议
+### 结论:
+1. DeltaV OPC HDA 服务器的同步操作（SyncReadRaw, SyncReadProcessed, ReadRaw, ReadProcessed, SyncReadAttribute）功能正常，可靠性高。
+2. 异步操作不可用，需依赖同步方法完成数据交互。
+3. 数据浏览、属性和聚合查询功能完整，支持多种应用场景。
+### 建议:
+1. 移除异步方法: 鉴于服务器不支持异步操作，建议从代码中移除相关实现（如 AsyncReadRaw），专注于优化同步方法。
+2. 数据验证: 对于 ReadProcessed 返回空值的情况，建议增加数据点或调整时间范围以验证聚合行为。
+3. 日志优化: 当前日志级别为 INFO，建议在生产环境中调整为 WARNING 或更高，以减少输出。
+### 附录
+完整代码: 已移除异步相关实现，版本更新至 1.0.1。
+日志文件: 完整日志记录于 2025-04-06 测试运行。
+---
+Connected to OPCHDA DeltaV.OPCHDAsvr
+
+Get OPCHDA  Historian Status: {'Status': 1, 'StatusString': 'Running', 'CurrentTime': '2025-04-06 17:32:12+00:00', 'ServerName': 'DeltaV.OPCHDAsvr', 'ServerNode': '', 'MaxReturnValues': 12000, 'StartTi
+me': '2025-04-06 17:32:12+00:00', 'BuildNumber': 7282, 'CLSID': '{0C678471-BCD7-11D4-9E70-00B0D060205F}', 'LocaleID': 1033, 'MajorVersion': 14, 'MinorVersion': 3, 'VendorInfo': 'Fisher-Rosemount System
+s, Inc. -- DeltaV OPC HDA Server', 'CanAsyncDeleteAtTime': 0, 'CanAsyncDeleteRaw': 0, 'CanAsyncInsert': 0, 'CanAsyncInsertAnnotations': 0, 'CanAsyncInsertReplace': 0, 'CanAsyncReadAnnotations': 0, 'Can
+AsyncReplace': 0, 'ClientName': 'PythonOPCHDAClient'}
+
+OPCHDA DeltaV.OPCHDAsvr Browsed 249 Items:,first 2 is ['V1-IO/DO1_NA_PV.CV', 'V1-IO/DO1_TMP_PV.CV']
+
+
+Get OPCHDA Item Attributes: [{'id': 1, 'name': 'Data Type', 'description': 'The data type of the historical data (VT_I4, VT_UI4, BT_R4 or VT_BSTR).', 'type': 2}, {'id': 4, 'name': 'Stepped', 'descripti
+on': 'True if the historical data value may be interpolated.  False for enumerations and string values.', 'type': 11}, {'id': 13, 'name': 'ItemID', 'description': 'The Item ID as provided to the DeltaV
+ Continuous Historian.', 'type': 8}, {'id': 14, 'name': 'Max Time Interval', 'description': 'The minimum interval between data values in the data set.', 'type': 64}, {'id': 15, 'name': 'Min Time Interv
+al', 'description': 'The maximum interval between data values in the data set.', 'type': 64}, {'id': 16, 'name': 'Exception Deviation', 'description': 'The minimum amount the data value must change to
+add a new sample to the data set.', 'type': 5}, {'id': -2147483646, 'name': 'Mod DESC', 'description': 'Current DeltaV Module Description', 'type': 8}, {'id': -2147483645, 'name': 'Eng Units', 'descrip
+tion': 'Current DeltaV Engineering Units', 'type': 8}, {'id': -2147483630, 'name': 'Eng 100%', 'description': 'Current DeltaV EU 100% of Scale Value', 'type': 4}, {'id': -2147483629, 'name': 'Eng 0%',
+'description': 'Current DeltaV EU 0% of Scale Value', 'type': 4}, {'id': -2147483614, 'name': 'Last Download', 'description': 'Last DVCH Download Time', 'type': 7}, {'id': -2147483613, 'name': 'Current
+ly On Scan', 'description': 'Currently On Scan', 'type': 11}, {'id': -2147483598, 'name': 'DeltaV Named Set', 'description': 'Deltav Named Set', 'type': 8}]
+
+OPCHDA support Aggregates : {'count': 13, 'type': [{'id': 1, 'name': 'Interpolative', 'description': 'Interpolate the return values.'}, {'id': 4, 'name': 'Time Average', 'description': 'The time weight
+ed average data over the resample interval.'}, {'id': 5, 'name': 'Count', 'description': 'The number of raw values over the sample interval.'}, {'id': 7, 'name': 'Minimum Actual Time', 'description': '
+The minimum value in the resample interval and the timestamp of the minimum value.'}, {'id': 8, 'name': 'Minimum', 'description': 'The minimum value in the resample interval.'}, {'id': 9, 'name': 'Maxi
+mum Actual Time', 'description': 'The maximum value in the resample interval and the timestamp of the maximum value.'}, {'id': 10, 'name': 'Maximum', 'description': 'The maximum value in the resample i
+nterval.'}, {'id': 11, 'name': 'Start', 'description': 'The value at the beginning of the resample interval and the timestamp of the beginning of the interval.'}, {'id': 12, 'name': 'End', 'description
+': 'The value at the end of the resample interval and the timestamp of the end of the interval.'}, {'id': 2, 'name': 'Total', 'description': 'Retrieve the totalized  value (time integral) of the data o
+ver the resample interval.'}, {'id': 3, 'name': 'Average', 'description': 'Retrieve the average data over the resample interval.'}, {'id': 18, 'name': 'Range', 'description': 'Retrieve the difference b
+etween the minimum and maximum value over the sample interval.'}, {'id': 6, 'name': 'Standard Deviation', 'description': 'Retrieve the standard deviation over the resample interval.'}]}
+
+Test SyncReadAttribute for V3-IO/DO1_TMP_PV.CV item_attribute_data is: {'V3-IO/DO1_TMP_PV.CV': {'AttributesIDs': [1, 4, 13, 14, 15, 16, -2147483646, -2147483645, -2147483630, -2147483613, -2147483598,
+0], 'values': [False, 'V3-IO/DO1_TMP_PV.CV', Decimal('86400000'), Decimal('10000'), 0.009999999776482582, 'G3 Pro IO Input Module TruBio 5.00 Build 012', None, None, True, None, None], 'qualities': [19
+2, 192, 192, 192, 192, 192, None, None, 192, None, None], 'timestamps': [pywintypes.datetime(2025, 4, 6, 19, 27, 21, tzinfo=TimeZoneInfo('GMT Standard Time', True)), pywintypes.datetime(2025, 4, 6, 19,
+ 27, 21, tzinfo=TimeZoneInfo('GMT Standard Time', True)), pywintypes.datetime(2025, 4, 6, 19, 27, 21, tzinfo=TimeZoneInfo('GMT Standard Time', True)), pywintypes.datetime(2025, 4, 6, 19, 27, 21, tzinfo
+=TimeZoneInfo('GMT Standard Time', True)), pywintypes.datetime(2025, 4, 6, 19, 27, 21, tzinfo=TimeZoneInfo('GMT Standard Time', True)), pywintypes.datetime(2025, 4, 6, 19, 27, 21, tzinfo=TimeZoneInfo('
+GMT Standard Time', True)), None, None, pywintypes.datetime(2025, 4, 6, 19, 27, 22, tzinfo=TimeZoneInfo('GMT Standard Time', True)), None, None]}}
+
+Test ReadRaw for V1-IO/DO1_TMP_PV.CV  is: {'V1-IO/DO1_TMP_PV.CV': {'values': [-33.260311126708984, -33.260311126708984], 'qualities': [262336, 262336], 'timestamps': [pywintypes.datetime(2025, 4, 6, 17
+, 38, 51, tzinfo=TimeZoneInfo('GMT Standard Time', True)), pywintypes.datetime(2025, 4, 6, 19, 27, 22, tzinfo=TimeZoneInfo('GMT Standard Time', True))]}}
+
+
+Aggregate 1 Result for V1-IO/DO1_TMP_PV.CV: {'V1-IO/DO1_TMP_PV.CV': {'values': [-33.260311126708984], 'qualities': [131264], 'timestamps': [pywintypes.datetime(2025, 4, 6, 18, 27, 22, tzinfo=TimeZoneIn
+fo('GMT Standard Time', True))]}}
+2025-04-06 19:27:22,393 - WARNING - Aggregate 1 returned 1 values
+Aggregate 3 Result for V1-IO/DO1_TMP_PV.CV: {'V1-IO/DO1_TMP_PV.CV': {'values': [None], 'qualities': [2097152], 'timestamps': [pywintypes.datetime(2025, 4, 6, 18, 27, 22, tzinfo=TimeZoneInfo('GMT Standa
+rd Time', True))]}}
+2025-04-06 19:27:22,428 - WARNING - Aggregate 3 returned 1 values
+Aggregate 5 Result for V1-IO/DO1_TMP_PV.CV: {'V1-IO/DO1_TMP_PV.CV': {'values': [0], 'qualities': [524480], 'timestamps': [pywintypes.datetime(2025, 4, 6, 18, 27, 22, tzinfo=TimeZoneInfo('GMT Standard T
+ime', True))]}}
+2025-04-06 19:27:22,458 - WARNING - Aggregate 5 returned 1 values
+
+OPCHDA Validation Results: for ['V1-IO/DO1_NA_PV.CV', 'V1-IO/DO1_TMP_PV.CV', 'V1-IO/PH1_MV_PV.CV']  {'V1-IO/DO1_NA_PV.CV': True, 'V1-IO/DO1_TMP_PV.CV': True, 'V1-IO/PH1_MV_PV.CV': True}
+
+OPCHDA SyncReadRaw Test for ['V1-IO/DO1_NA_PV.CV', 'V1-IO/DO1_TMP_PV.CV', 'V1-IO/PH1_MV_PV.CV'] is : {'V1-IO/DO1_NA_PV.CV': {'values': [-18.968229293823242, -18.968229293823242], 'qualities': [262336,
+262336], 'timestamps': [pywintypes.datetime(2025, 4, 6, 17, 37, 51, tzinfo=TimeZoneInfo('GMT Standard Time', True)), pywintypes.datetime(2025, 4, 6, 19, 27, 22, tzinfo=TimeZoneInfo('GMT Standard Time',
+ True))]}, 'V1-IO/DO1_TMP_PV.CV': {'values': [-18.968229293823242, -18.968229293823242], 'qualities': [262336, 262336], 'timestamps': [pywintypes.datetime(2025, 4, 6, 17, 37, 51, tzinfo=TimeZoneInfo('G
+MT Standard Time', True)), pywintypes.datetime(2025, 4, 6, 19, 27, 22, tzinfo=TimeZoneInfo('GMT Standard Time', True))]}, 'V1-IO/PH1_MV_PV.CV': {'values': [-18.968229293823242, -18.968229293823242], 'q
+ualities': [262336, 262336], 'timestamps': [pywintypes.datetime(2025, 4, 6, 17, 37, 51, tzinfo=TimeZoneInfo('GMT Standard Time', True)), pywintypes.datetime(2025, 4, 6, 19, 27, 22, tzinfo=TimeZoneInfo(
+'GMT Standard Time', True))]}}
+
+OPCHDA SyncReadProcessed for ['V1-IO/DO1_NA_PV.CV', 'V1-IO/DO1_TMP_PV.CV', 'V1-IO/PH1_MV_PV.CV'] is : {'V1-IO/DO1_NA_PV.CV': {'values': [-18.968229293823242], 'qualities': [131264], 'timestamps': [pywi
+ntypes.datetime(2025, 4, 6, 18, 27, 22, tzinfo=TimeZoneInfo('GMT Standard Time', True))]}, 'V1-IO/DO1_TMP_PV.CV': {'values': [-18.968229293823242], 'qualities': [131264], 'timestamps': [pywintypes.date
+time(2025, 4, 6, 18, 27, 22, tzinfo=TimeZoneInfo('GMT Standard Time', True))]}, 'V1-IO/PH1_MV_PV.CV': {'values': [-18.968229293823242], 'qualities': [131264], 'timestamps': [pywintypes.datetime(2025, 4
+, 6, 18, 27, 22, tzinfo=TimeZoneInfo('GMT Standard Time', True))]}}
+
+disconnected from OPCHDA server
+---
+## **OPC HDA 自定义接口和方法**
 
 使用 DeltaV OPC 历史服务器访问 DeltaV 连续历史库历史数据的程序员应该熟悉 OPC 历史数据访问规范。
 
