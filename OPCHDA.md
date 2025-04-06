@@ -1,14 +1,13 @@
-## OPC HDA 客户端（Python）：代码报告
 
-# DeltaV OPC HDA 服务器接口测试报告
+# **DeltaV OPC HDA 服务器接口测试报告**
 
-## 概述
+## **概述**
 
 本报告记录了对 DeltaV OPC HDA 服务器的接口测试结果，使用 Python 语言通过 `win32com.client` 库实现。测试目标是验证服务器的连接性、数据浏览、读取和处理功能。测试时间为 2025 年 4 月 6 日，使用的服务器为 `DeltaV.OPCHDAsvr`，客户端名称为 `PythonOPCHDAClient`。
-DeltaV OPC HDA 服务器自带测试工具：hdaprobe 可用于验证
+DeltaV OPC HDA 服务器自带测试工具：**hdaprobe** 可用于验证
 
 
-## 测试环境
+## **测试环境**
 
 - **服务器**: DeltaV OPC HDA Server (版本 14.3, Build 7282)
 - **客户端**: Python 3.13, `win32com.client` 库
@@ -16,11 +15,11 @@ DeltaV OPC HDA 服务器自带测试工具：hdaprobe 可用于验证
 - **测试日期**: 2025-04-06
 - **测试代码版本**: 1.0.1
 
----
 
-## 测试结果
 
-### 1. 服务器连接性
+## **测试结果**
+
+### 1. **服务器连接性**
 
 **测试方法**: `_OPCHDA_.connect()`  
 **结果**:  
@@ -51,15 +50,15 @@ DeltaV OPC HDA 服务器自带测试工具：hdaprobe 可用于验证
     "ClientName": "PythonOPCHDAClient"
   }
 **结论**: 连接正常，服务器运行状态良好，但所有异步操作支持标志均为 0，表明服务器不支持异步方法。
-### 2. 数据项浏览
+### 2. **数据项浏览**
 **测试方法**: _OPCHDA_.CreateBrowse()
 
 **结果**:
 成功浏览到 249 个数据项。
 
 **结论**: 浏览功能正常，服务器返回的数据项数量和内容符合预期。
-### 3. 属性和聚合支持
-#### 3.1 获取数据项属性
+### 3. **属性和聚合支持**
+#### 3.1 **获取数据项属性**
 **测试方法**: _OPCHDA_.GetItemAttributes()
 
 **结果**:
@@ -72,7 +71,7 @@ DeltaV OPC HDA 服务器自带测试工具：hdaprobe 可用于验证
 }
 ```
 **结论**: 属性获取成功，服务器支持多种属性查询。
-#### 3.2 获取聚合类型
+#### 3.2 **获取聚合类型**
 **测试方法**: _OPCHDA_.GetAggregates()
 **结果**:
 返回 13 种支持的聚合类型，包括 Interpolative、Time Average 等。
@@ -84,8 +83,8 @@ DeltaV OPC HDA 服务器自带测试工具：hdaprobe 可用于验证
 }
   ```
 **结论**: 聚合类型获取成功，支持多种数据处理方式。
-### 4. 数据读取测试
-#### 4.1 同步读取属性 (SyncReadAttribute)
+### 4. **数据读取测试**
+#### 4.1 **同步读取属性 (SyncReadAttribute)**
 **测试方法**: _OPCHDA_.SyncReadAttribute()
 **参数**:
 - Item ID: V3-IO/DO1_TMP_PV.CV
@@ -105,7 +104,7 @@ DeltaV OPC HDA 服务器自带测试工具：hdaprobe 可用于验证
     ```
 
 **结论**: 属性读取成功，返回值和质量符合预期，部分属性（如 Eng Units）无数据。
-#### 4.2 单项原始数据读取 (ReadRaw)
+#### 4.2 **单项原始数据读取 (ReadRaw)**
 **测试方法**: _OPCHDA_.ReadRaw()
 
 **参数**:
@@ -125,7 +124,7 @@ DeltaV OPC HDA 服务器自带测试工具：hdaprobe 可用于验证
   }
   ```
 **结论**: 单项原始数据读取成功，返回值和时间戳准确。
-#### 4.3 单项处理数据读取 (ReadProcessed)
+#### 4.3 **单项处理数据读取 (ReadProcessed)**
 **测试方法**: _OPCHDA_.ReadProcessed()
 
 **参数**:
@@ -140,7 +139,7 @@ DeltaV OPC HDA 服务器自带测试工具：hdaprobe 可用于验证
 - 聚合 3 (Average): [null]，质量 2097152
 - 聚合 5 (Count): [0]，质量 524480
 **结论**: 处理数据读取部分成功，Average 返回空值可能由于数据不足。
-#### 4.4 多项原始数据读取 (SyncReadRaw)
+#### 4.4 **多项原始数据读取 (SyncReadRaw)**
 **测试方法**: _OPCHDA_.SyncReadRaw()
 
 **参数**:
@@ -161,7 +160,7 @@ DeltaV OPC HDA 服务器自带测试工具：hdaprobe 可用于验证
 }
  ```
 **结论**: 多项原始数据读取成功，返回数据一致。
-#### 4.5 多项处理数据读取 (SyncReadProcessed)
+#### 4.5 **多项处理数据读取 (SyncReadProcessed)**
 **测试方法**: _OPCHDA_.SyncReadProcessed()
 
 **参数**:
@@ -183,7 +182,7 @@ DeltaV OPC HDA 服务器自带测试工具：hdaprobe 可用于验证
 }
 ```
 **结论** : 多项处理数据读取成功，返回单点插值数据。
-### 5. 数据项验证
+### 5. **数据项验证**
 **测试方法**: _OPCHDA_.ValidateItemIDs()
 
 **参数**:
@@ -199,25 +198,25 @@ DeltaV OPC HDA 服务器自带测试工具：hdaprobe 可用于验证
 
 **结论**: 数据项验证成功，所有测试 ID 有效。
 
-## 存在的问题
-异步方法不可用:
+## **存在的问题**
+**异步方法不可用**:
 Historian Status 显示所有 CanAsync* 属性均为 0，表明 DeltaV OPC HDA 服务器不支持异步操作。
 尝试使用 AsyncReadRaw 等方法时，返回 E_FAIL (-2147467259)，且回调未触发。
-部分聚合结果异常:
+**部分聚合结果异常**:
 ReadProcessed 中，Average (ID: 3) 返回 null，可能由于时间范围内数据点不足。
 
-## 结论与建议
-### 结论:
+## **结论与建议**
+### **结论**:
 1. DeltaV OPC HDA 服务器的同步操作（SyncReadRaw, SyncReadProcessed, ReadRaw, ReadProcessed, SyncReadAttribute）功能正常，可靠性高。
 2. 异步操作不可用，需依赖同步方法完成数据交互。
 3. 数据浏览、属性和聚合查询功能完整，支持多种应用场景。
-### 建议:
+### **建议**:
 1. 移除异步方法: 鉴于服务器不支持异步操作，建议从代码中移除相关实现（如 AsyncReadRaw），专注于优化同步方法。
 2. 数据验证: 对于 ReadProcessed 返回空值的情况，建议增加数据点或调整时间范围以验证聚合行为。
 3. 日志优化: 当前日志级别为 INFO，建议在生产环境中调整为 WARNING 或更高，以减少输出。
-### 附录
-完整代码: 已移除异步相关实现，版本更新至 1.0.1。
-日志文件: 完整日志记录于 2025-04-06 测试运行。
+### **附录**
+ **完整代码**: 已移除异步相关实现，版本更新至 1.0.1。
+ **日志文件**: 完整日志记录于 2025-04-06 测试运行。
 ---
 Connected to OPCHDA DeltaV.OPCHDAsvr
 
@@ -281,8 +280,8 @@ OPCHDA SyncReadProcessed for ['V1-IO/DO1_NA_PV.CV', 'V1-IO/DO1_TMP_PV.CV', 'V1-I
 ntypes.datetime(2025, 4, 6, 18, 27, 22, tzinfo=TimeZoneInfo('GMT Standard Time', True))]}, 'V1-IO/DO1_TMP_PV.CV': {'values': [-18.968229293823242], 'qualities': [131264], 'timestamps': [pywintypes.date
 time(2025, 4, 6, 18, 27, 22, tzinfo=TimeZoneInfo('GMT Standard Time', True))]}, 'V1-IO/PH1_MV_PV.CV': {'values': [-18.968229293823242], 'qualities': [131264], 'timestamps': [pywintypes.datetime(2025, 4
 , 6, 18, 27, 22, tzinfo=TimeZoneInfo('GMT Standard Time', True))]}}
-
 disconnected from OPCHDA server
+
 ---
 ## **OPC HDA 自定义接口和方法**
 
