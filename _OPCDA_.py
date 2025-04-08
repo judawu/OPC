@@ -7,15 +7,16 @@ import pickle
 import logging
 import os
 import time
+
 from datetime import datetime
 from typing import Dict, Optional, Tuple,List,Callable
 import msvcrt  # 用于非阻塞输入（Windows）
 class _OPCDA_:
-    def __init__(self, server_name: str = "OPC.DeltaV.1", client_name: str = "DefaultOPCDAClient"):
-        # 获取当前脚本的目录
+    def __init__(self, node_name:str=None, server_name: str = "OPC.DeltaV.1", client_name: str = "DefaultOPCDAClient"):
+        # 获取当前脚本的目录 ,OPC.DeltaV.1
        
         
-  
+        self.node_name = node_name
         self.server_name = server_name
         self.opc = None
         self.browser = None
@@ -26,21 +27,38 @@ class _OPCDA_:
         self.callback_handler = None  # Explicitly track callback handler
 
     def connect(self) -> bool:
-        """连接到OPC服务器"""
-        logging.debug(f"_OPCDA_: Attempting to connect to {self.server_name}")
+        """连接到OPC服务器，带超时保护"""
+        target = self.node_name if self.node_name else "local"
+     
+      
         try:
+            pythoncom.CoInitialize()  # Initialize COM in this thread
+            logging.debug(f"_OPCDA_.connect: Trying to access OPC server {self.server_name} from computer name/ip : {target} ")
             self.opc = win32com.client.Dispatch("OPC.Automation")
-            self.opc.Connect(self.server_name)
-            self.browser = self.opc.CreateBrowser()
-            self.groups = self.opc.OPCGroups  # 为read方法准备
-            self.browser.MoveToRoot()
-            self.connected = True
-            logging.info(f"_OPCDA_: Successfully connected to OPC server {self.server_name}")
+            self.opc.Connect(self.server_name, self.node_name)  # Connect with node_name (None for local)               
            
+            try:
+                self.browser = self.opc.CreateBrowser()
+                self.browser.MoveToRoot()
+            except:
+                logging.error(f"_OPCDA_:connect  Failed to create browser for OPC server {self.server_name} on {target}")
+                
+                
+            self.groups = self.opc.OPCGroups
+            
+            self.connected = True
+            logging.debug(f"_OPCDA_: Successfully connected to OPC server {self.server_name} on {target}")
             return True
         except Exception as e:
-            logging.error(f"_OPCDA_: Failed to connect to OPC server  {self.server_name}: {str(e)}")
+            logging.error(f"_OPCDA_: Failed to connect to OPC server {self.server_name} on {target}: {str(e)}")
             return False
+        finally:
+            if not self.connected:
+                pythoncom.CoUninitialize()
+                return False
+
+     
+         
 
     def disconnect(self):
         logging.debug(F"Attempting to disconnect from OPC server {self.server_name}")
@@ -66,7 +84,7 @@ class _OPCDA_:
                     import gc
                     self.opc = None
                     gc.collect()  # Force garbage collection
-                    
+                pythoncom.CoUninitialize()  # Add this
                 self.connected = False
     def explore_server_methods(self) -> List[str]:
         """
@@ -96,12 +114,12 @@ class _OPCDA_:
                 "BuildNumber": self.opc.BuildNumber,
                 "VendorInfo": self.opc.VendorInfo
             }
-            logging.debug(f"_OPCDA_: opc da Server {self.server_name} status: {server_details}")
+            logging.debug(f"_OPCDA_ explore_server_details: opc da Server {self.server_name} status: {server_details}")
             
           
             return server_details
         except Exception as e:
-            logging.error(f"_OPCDA_: Error accessing opc da server  {self.server_name} details: {str(e)}")
+            logging.error(f"_OPCDA_explore_server_details: Error accessing opc da server  {self.server_name} details: {str(e)}")
             return {}
 
     def query_local_servers(self) -> List[str]:
@@ -665,7 +683,7 @@ class OPCDADataCallback:
         """Get the latest data for an item."""
         return self.data.get(item_path)
 def main():
-    opc_da = _OPCDA_()
+    opc_da = _OPCDA_(node_name='10.4.0.6',server_name='DeltaV.DVSYSsvr.1')
     try:
        
         
@@ -698,72 +716,75 @@ def main():
             print()
 
 
+            if opc_da.server_name == "OPC.DeltaV.1":
+                print(f"Build Main structure ")
+                main_structure = {}
+                opc_da.move_to_path(opc_da.browser)
+                main_structure = opc_da.browse_level(opc_da.browser, 1, 2,"", main_structure)      
+                opc_da.update_structure(main_structure)
+                print(f" Main structure updated successfully")
+                print()
+                print("AccessRights:",opc_da.browser.AccessRights)
+                print("CLSID:",opc_da.browser.CLSID)
+                start_time = time.time()
+                print()
+                target_path = "MODULES.AREA_V4.V4-EM.V4-AI-2.FS_CTRL1"
+                print(f"Updating target path {target_path} structure,it may take a while...")
+                if opc_da.move_to_path(opc_da.browser, target_path):
+                    max_level = 1
+                    structure = {}
+                    structure = opc_da.browse_level(opc_da.browser, 1, max_level, target_path, structure)
+                    print(structure)
+                    opc_da.update_structure(structure, target_path)
+                else:
+                    logging.error(f"Failed to move to {target_path}")
+                print()
+                target_path = "DIAGNOSTICS.Physical Network.Control Network.PROPLUS.Campaign Manager"
+                print(f"Updating target path {target_path} structure,it may take a while...")
+                if opc_da.move_to_path(opc_da.browser, target_path):
+                
+                    max_level = 6
+                    structure = {}
+                    structure = opc_da.browse_level(opc_da.browser, 1, max_level, target_path, structure)
+                
+                    opc_da.update_structure(structure, target_path)
+                else:
+                    print("Fail move to path")
+                    logging.error(f"Failed to move to {target_path}")
+                end_time = time.time()
+                elapsed_time = end_time - start_time
+                print(f"Target path {target_path} update completed in {elapsed_time:.2f} seconds")
+                print()
+                # 测试bin转json
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                json_output = os.path.join(current_dir, 'main_structure.json')
+                structure= opc_da.bin_to_json(json_output)
+                print(f"JSON structure saved to {json_output}")
+          
+                print()
+                #print(json.dumps(structure, indent=4))
 
-            print(f"Build Main structure ")
-            main_structure = {}
-            opc_da.move_to_path(opc_da.browser)
-            main_structure = opc_da.browse_level(opc_da.browser, 1, 2,"", main_structure)      
-            opc_da.update_structure(main_structure)
-            print(f" Main structure updated successfully")
-            print()
-            print("AccessRights:",opc_da.browser.AccessRights)
-            print("CLSID:",opc_da.browser.CLSID)
-            start_time = time.time()
-            print()
-            target_path = "MODULES.AREA_V4.V4-EM.V4-AI-2.FS_CTRL1"
-            print(f"Updating target path {target_path} structure,it may take a while...")
-            if opc_da.move_to_path(opc_da.browser, target_path):
-                max_level = 1
-                structure = {}
-                structure = opc_da.browse_level(opc_da.browser, 1, max_level, target_path, structure)
-                print(structure)
-                opc_da.update_structure(structure, target_path)
-            else:
-                logging.error(f"Failed to move to {target_path}")
-            print()
-            target_path = "DIAGNOSTICS.Physical Network.Control Network.PROPLUS.Campaign Manager"
-            print(f"Updating target path {target_path} structure,it may take a while...")
-            if opc_da.move_to_path(opc_da.browser, target_path):
+
+                # 测试项属性
             
-                max_level = 6
-                structure = {}
-                structure = opc_da.browse_level(opc_da.browser, 1, max_level, target_path, structure)
-              
-                opc_da.update_structure(structure, target_path)
-            else:
-                print("Fail move to path")
-                logging.error(f"Failed to move to {target_path}")
-            end_time = time.time()
-            elapsed_time = end_time - start_time
-            print(f"Target path {target_path} update completed in {elapsed_time:.2f} seconds")
-            print()
-            # 测试bin转json
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            json_output = os.path.join(current_dir, 'main_structure.json')
-            structure= opc_da.bin_to_json(json_output)
-            print(f"JSON structure saved to {json_output}")
-          
-            print()
-            #print(json.dumps(structure, indent=4))
-
-
-            # 测试项属性
-          
-            items = opc_da.browse_items(opc_da.browser,"MODULES.AREA_V1.V1-IO.AI1_SCI1", max_level=1)
-            print("Available Items:", items)
-            print("Read able path:", opc_da.convert_paths(items))
-            print()
-            # items = opc_da.browse_items(opc_da.browser,"DIAGNOSTICS.Physical Network.Control Network.PROPLUS", max_level=1)
-            # print("Available Items:", items)
-           
-            print("CurrentPosition:",opc_da.browser.CurrentPosition)
+                items = opc_da.browse_items(opc_da.browser,"MODULES.AREA_V1.V1-IO.AI1_SCI1", max_level=1)
+                print("Available Items:", items)
+                print("Read able path:", opc_da.convert_paths(items))
+                print()
+                # items = opc_da.browse_items(opc_da.browser,"DIAGNOSTICS.Physical Network.Control Network.PROPLUS", max_level=1)
+                # print("Available Items:", items)
+            
+                print("CurrentPosition:",opc_da.browser.CurrentPosition)
          
 
 
 
             # 测试read
             print(f" testing OPC read")
-            item_paths = ["V1-IO/DO1_NA_PV.CV", "V1-IO/PH1_MV_PV.CV",'PROPLUS/FREMEM.CV']+opc_da.convert_paths(items)
+            if opc_da.server_name == "OPC.DeltaV.1":
+                item_paths = ["V1-IO/DO1_NA_PV.CV", "V1-IO/PH1_MV_PV.CV",'PROPLUS/FREMEM.CV']+opc_da.convert_paths(items)
+            else:
+                item_paths = ["V1-IO/DO1_NA_PV.f_CV", "V1-IO/PH1_MV_PV.f_CV",'PROPLUS/FREMEM.f_CV']
             try:
                 read_results = opc_da.read(item_paths)
                 for item_path, (value, quality, timestamp) in zip(item_paths, read_results):
@@ -774,7 +795,10 @@ def main():
             print()
            # 测试write
             print(f" testing OPC Write")
-            write_paths = ["V1-IO/AI1_SCI1.EU100", "V1-AIC-DO/PID1/MODE.TARGET",'V1-AI-1/FS_CTRL1/MOD_DESC.CV']
+            if opc_da.server_name == "OPC.DeltaV.1":
+               write_paths = ["V1-IO/AI1_SCI1.EU100", "V1-AIC-DO/PID1/MODE.TARGET",'V1-AI-1/FS_CTRL1/MOD_DESC.CV']
+            else:
+                 write_paths = ["V1-IO/AI1_SCI1.F_EU100", "V1-AIC-DO/PID1/MODE.F_TARGET",'V1-AI-1/FS_CTRL1/MOD_DESC.A_CV']
             write_values = [32767, 8,'AI1 test']
             try:
                 write_results = opc_da.write(write_paths, write_values)
@@ -958,7 +982,7 @@ def main():
 
 if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    log_file = os.path.join(base_dir,'opcuda.log')
+    log_file = os.path.join(base_dir,'opcda.log')
     logging.basicConfig(
             filename=log_file,
             level=logging.DEBUG,
