@@ -1,9 +1,16 @@
 # 这是基于opcua实现的一个包装opcda的桥接项目，主要处理emerson的DELTAV系统的opc.deltav.1的opc server的访问
 - _OPCDA_： opcda客户端
+- _OPHDA_： opcHda客户端
+- _OPCAE_： opcAE客户端
 -  _OPCUAWrapper_: opcua服务器
 -  _OPCUAClient_: opcua客户端
 
-
+OpcDxPs.dll,OpcCmdPs.dll,opc_aeps.dll  came from https://opcfoundation.org/forum/classic-opc-da-ae-hda-xml-da-etc/ ,  
+~~~
+win32com.client.Dispatch("OPC.Automation")   for opcda
+win32com.client.Dispatch("OPCHDA.Automation")  fro opchda
+win32com.client.Dispatch("Opc_auto_ae.OpcEventServer")  for opcae
+~~~
 ## 项目概述
 本项目实现了一个基于 OPC UA 协议的客户端-服务器交互系统，包含三个客户端（`opcuaclient1`、`opcuaclient2`、`opcuaclient3`）和一个服务器，用于测试证书管理、安全策略配置、数据读写以及权限控制功能。系统使用 Python 的 `asyncua` 库构建，运行于本地环境（`opc.tcp://localhost:4840`），时间戳为 2025 年 3 月 24 日。
 
