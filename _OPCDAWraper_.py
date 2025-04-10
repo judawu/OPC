@@ -9,6 +9,7 @@ import hashlib
 from typing import List, Dict, Tuple, Optional
 import asyncio
 from asyncua import Server, ua
+
 from asyncua.server.users import User, UserRole  # Correct import for v1.1.5
 from asyncua.crypto.security_policies import (
     SecurityPolicy,
@@ -24,6 +25,7 @@ from cryptography.x509.oid import NameOID
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue, Empty
 from _OPCDA_ import _OPCDA_, OPCDADataCallback
+from _DVAE_ import EventChronicleClient
 
 import copy
 
@@ -333,10 +335,14 @@ class _OPCDAWrapper_:
             self.application_uri = "http://OPC.DELTAV.1"
             self.idx = None
             self.da_folder = None
+         
             self.cert_node = None
             self.nodes = {}  # Dict[str, ua.Node]
             self.folders = {}  # 新增: 用于存储文件夹节点
             self.items = []
+            self.events_node = None
+            self.event_type = None
+            self.event_nodes = {}
             self.last_error_code = None  # 用于存储错误状态的节点
             self.last_error_desc = None  # 用于存储错误状态的节点
         async def __get_server_info__(self):
@@ -345,7 +351,7 @@ class _OPCDAWrapper_:
                 "application_uri": self.application_uri,
                 "idx": self.idx,
                 "endpoint": self.endpoint,
-                "version": '1.0.10',
+                "version": '1.0.11',
                 "VendorInfo": 'Juda.monster'
             }
     class Cert:
@@ -752,7 +758,8 @@ class _OPCDAWrapper_:
         await self.server.set_application_uri(uri)
         logging.info(f"_OPCDAWrapper_.setup_opc_ua_server:Registered namespace index: {self.node.idx}")
         objects = self.server.nodes.objects
-        self.node.da_folder = await objects.add_folder(self.node.idx, self.node.name)   
+        self.node.da_folder = await objects.add_folder(self.node.idx, self.node.name)  
+        
         logging.info(f"_OPCDAWrapper_.setup_opc_ua_server:add foulder to self.node.da_folder: {self.node.idx}: {self.node.name}")
         if self.server.iserver.isession:
           logging.debug(f"_OPCDAWrapper_.setup_opc_ua_server:Initial isession.user after init: name={self.server.iserver.isession.user.name}, role={self.server.iserver.isession.user.role}")
@@ -804,6 +811,14 @@ class _OPCDAWrapper_:
             self.node.idx, "LastErrorDesc", "", ua.VariantType.String
         )
         await self.node.last_error_desc.set_writable()
+
+        self.node.events_node = await self.node.da_folder.add_object(self.node.idx, "Events")   
+        await self.node.events_node.write_attribute(
+                ua.AttributeIds.EventNotifier,
+                ua.DataValue(ua.Variant(1, ua.VariantType.Byte))
+            )
+        await self.setup_event_type()
+
         # 添加方法并设置权限
         method_nodes = {
             "write_items": await self.node.da_folder.add_method(
@@ -889,13 +904,18 @@ class _OPCDAWrapper_:
             self.user_manager.recently_closed.clear()
             
             logging.debug("_OPCDAWrapper_.stop:Cleared all anonymous sessions during shutdown")
-
+  
         if  self.user_manager.connected_clients["count"] != 0:
              for session_id in list(self.user_manager.connected_clients["sessions"].keys()):
                  self.disconnect_client(session_id)
                  
         # self.user_manager.connected_clients["count"] = 0
         # self.user_manager.connected_clients["sessions"].clear()
+
+        if hasattr(self, "custom_event_type"):
+            await self.server.delete_nodes([self.custom_event_type])
+            del self.custom_event_type
+            logging.debug("Cleaned up CustomEventType")
         try:
             self.executor.shutdown(wait=True)
             logging.debug("_OPCDAWrapper_.stop:Executor shutdown completed")
@@ -1657,6 +1677,167 @@ class _OPCDAWrapper_:
                 print(f"_OPCDAWrapper_.custom_callback:Poll/Subscribe: {path} = {value}, Quality={quality}, Timestamp={timestamp}")
                 logging.debug(f"_OPCDAWrapper_.custom_callback: {path} = {value}, Quality={quality}, Timestamp={timestamp}")
     
+    async def setup_event_type(self):
+        """初始化自定义事件类型 DeltaVEventType"""
+      
+        try:
+            base_event_type = self.server.nodes.base_event_type
+            self.node.event_type = await base_event_type.add_object_type(self.node.idx, "DeltaVEventType")
+        
+            # 添加属性到事件类型
+            property1 =await  self.node.event_type.add_property(self.node.idx, "EventTime", ua.Variant(datetime.datetime.now(), ua.VariantType.DateTime))
+            await property1.set_modelling_rule(True)  # make sure the variable is instansiated
+            property2 =await  self.node.event_type.add_property(self.node.idx, "Event_Type", ua.Variant("", ua.VariantType.String))
+            await property2.set_modelling_rule(True)  # make sure the variable is instansiated
+            property3 =await  self.node.event_type.add_property(self.node.idx, "Category", ua.Variant("", ua.VariantType.String))
+            await property3.set_modelling_rule(True) 
+            property4 =await  self.node.event_type.add_property(self.node.idx, "Area", ua.Variant("", ua.VariantType.String))
+            await property4.set_modelling_rule(True) 
+            property5 =await  self.node.event_type.add_property(self.node.idx, "Node", ua.Variant("", ua.VariantType.String))
+            await property5.set_modelling_rule(True) 
+            property6 =await  self.node.event_type.add_property(self.node.idx, "Module", ua.Variant("", ua.VariantType.String))
+            await property6.set_modelling_rule(True) 
+            property7 =await  self.node.event_type.add_property(self.node.idx, "ModuleDescription", ua.Variant("", ua.VariantType.String))
+            await property7.set_modelling_rule(True) 
+            property8 =await  self.node.event_type.add_property(self.node.idx, "Attribute", ua.Variant("", ua.VariantType.String))
+            await property8.set_modelling_rule(True) 
+            property9 = await  self.node.event_type.add_property(self.node.idx, "State", ua.Variant("", ua.VariantType.String))
+            await property9.set_modelling_rule(True) 
+            property10 =await  self.node.event_type.add_property(self.node.idx, "Level", ua.Variant("", ua.VariantType.String))
+            await property10.set_modelling_rule(True) 
+            property11 =await  self.node.event_type.add_property(self.node.idx, "Parameter", ua.Variant("", ua.VariantType.String))
+            await property11.set_modelling_rule(True) 
+            property12 =await  self.node.event_type.add_property(self.node.idx, "Description", ua.Variant("", ua.VariantType.String))
+            await property12.set_modelling_rule(True) 
+
+            logging.debug(f"_OPCDAWrapper_.setup_event_type: Created CustomEventType: {self.node.event_type}")
+        except Exception as e:
+            logging.error(f"_OPCDAWrapper_.setup_event_type: Failed to create CustomEventType: {str(e)}")
+            raise
+    async def update_events(self, events):
+            """Update OPC UA event nodes without triggering events manually."""
+            # 清理现有的事件节点
+            for node_id in list(self.node.event_nodes.keys()):
+                try:
+                    child_node = await self.node.events_node.get_child(f"{self.node.idx}:{node_id}")
+                    await self.node.events_node.delete_nodes([child_node], recursive=True)
+                    logging.debug(f"Deleted existing event node {node_id}")
+                except Exception as e:
+                    logging.warning(f"Failed to delete node {node_id}: {str(e)}")
+            self.node.event_nodes.clear()
+
+
+         
+                # 触发事件
+            for event in events:
+                event_id = f"{event['Module']}_{event['Ord']}"
+                try:
+                    # 使用 get_event_generator 创建事件
+                    event_generator = await self.server.get_event_generator(self.node.event_type, self.node.events_node)
+                    
+                    # 设置事件属性
+                    event_generator.event.EventId = ua.Variant(event_id.encode(), ua.VariantType.ByteString)
+                    event_generator.event.SourceNode = self.node.events_node.nodeid
+                    event_generator.event.EventType = self.node.event_type.nodeid
+
+                    # 自定义属性赋值
+                    if isinstance(event["EventTime"], datetime.datetime):
+                        event_generator.event.EventTime = event["EventTime"]
+                    else:
+                        event_generator.event.EventTime = datetime.datetime.strptime(event["EventTime"], "%Y-%m-%d %H:%M:%S")
+                    
+                    event_generator.event.Event_Type = event["Event_Type"]
+                    event_generator.event.Category = event["Category"]
+                    event_generator.event.Area = event["Area"]
+                    event_generator.event.Node = event["Node"]
+                    event_generator.event.Module = event["Module"]
+                    event_generator.event.ModuleDescription = event["ModuleDescription"]
+                    event_generator.event.Attribute = event["Attribute"]
+                    event_generator.event.State = event["State"]
+                    event_generator.event.Level = event["Level"]
+                    event_generator.event.Parameter = event["Parameter"]
+                    event_generator.event.Description = event["Description"]
+                    event_generator.event.Ord = event["Ord"]
+
+                    # 设置其他必要属性
+                    event_generator.event.Severity = 10
+                    event_generator.event.Message = ua.LocalizedText(f"Alarm {event["Module"]}  {event["Attribute"]}")
+
+                    # 触发事件
+                    await event_generator.trigger() 
+                    logging.debug(f"Triggered event {event_id}")
+
+                    # 可选：存储事件引用
+                    self.node.event_nodes[event_id] = event_generator.event
+
+                except Exception as e:
+                    logging.error(f"Failed to trigger event {event_id}: {str(e)}")
+                    raise
+
+
+
+    async def periodic_event_update(self):
+                sql_client = EventChronicleClient(server="10.4.0.6,55114", instance="DELTAV_CHRONICLE")
+                try:
+                    filters = {
+                                "Category": "PROCESS",
+                                "Event_Type": "ALARM",
+                                "Attribute": ["LO_ALM","LO_LO_ALM","HI_ALM","HI_HI_ALM","PVBAD_ALM"]
+                                                                      
+                            }
+                    sql_client.connect()
+                    while not self.event.shutdown.is_set():
+                    
+                        try:
+                            events = sql_client.fetch_events(seconds_back=5,filters=filters)
+                            if events:
+                                await self.update_events(events)
+                                logging.debug("_OPCDAWrapper_.start: Periodic event update completed")
+                            await asyncio.sleep(5)  # 每5秒检查一次
+                        except Exception as e:
+                            logging.error(f"_OPCDAWrapper_.start: Error in periodic event update: {str(e)}")
+                            await asyncio.sleep(5)  # 出错了等待5秒再重试
+                except Exception as e:
+                    logging.error(f"_OPCDAWrapper_.start: Failed to initialize event update: {str(e)}")
+                finally:
+                    sql_client.disconnect()
+                    logging.debug("_OPCDAWrapper_.start: Event update SQL client disconnected")
+
+            
+    async def _deleted_update_events(self,events):
+        
+        for node_id in list(self.node.event_nodes.keys()):
+            try:
+                child_node = await self.node.events_node.get_child(f"{self.node.idx}:{node_id}")
+                await self.node.events_node.delete_nodes([child_node], recursive=True)
+            except Exception as e:
+                logging.warning(f"Failed to delete node {node_id}: {str(e)}")
+        self.node.event_nodes.clear()
+
+        for event in events:
+
+            event_id = f"{event['Module']}_{event['Ord']}"
+            try:
+                event_node = await self.node.events_node.add_object(self.node.idx, event_id)
+                self.node.event_nodes[event_id] = {
+                    "EventTime": await event_node.add_variable(self.node.idx, "EventTime", event["EventTime"]),
+                    "EventType": await event_node.add_variable(self.node.idx, "EventType", event["Event_Type"]),
+                    "Category": await event_node.add_variable(self.node.idx, "Category", event["Category"]),
+                    "Area": await event_node.add_variable(self.node.idx, "Area", event["Area"]),
+                    "Node": await event_node.add_variable(self.node.idx, "Node", event["Node"]),
+                    "Module": await event_node.add_variable(self.node.idx, "Module", event["Module"]),
+                    "ModuleDescription": await event_node.add_variable(self.node.idx, "ModuleDescription", event["ModuleDescription"]),
+                    "Attribute": await event_node.add_variable(self.node.idx, "Attribute", event["Attribute"]),
+                    "State": await event_node.add_variable(self.node.idx, "State", event["State"]),
+                    "Level": await event_node.add_variable(self.node.idx, "Level", event["Level"]),
+                    "Parameter": await event_node.add_variable(self.node.idx, "Parameter", event["Parameter"]),
+                    "Description": await event_node.add_variable(self.node.idx, "Description", event["Description"])
+                }
+                for key, node in self.node.event_nodes[event_id].items():
+                    await node.set_value(event[key])
+            except Exception as e:
+                logging.error(f"Failed to add event node {event_id}: {str(e)}")
+
     async def start(self, items: List[str], max_updates: Optional[int] = None):
             self.event.running.set()
             self.opcdastack.max_updates = max_updates
@@ -1691,6 +1872,9 @@ class _OPCDAWrapper_:
                     # 启动周期性更新任务
                     update_task = asyncio.create_task(self.update_ua_nodes())
                     logging.debug("_OPCDAWrapper_.start: Periodic update task started")
+                  
+                    event_update_task = asyncio.create_task(self.periodic_event_update())
+                    logging.debug("_OPCDAWrapper_.start: Periodic event update task started")
 
                     # 主循环，监听事件并支持动态调用
                     while not self.event.shutdown.is_set():
@@ -1699,11 +1883,12 @@ class _OPCDAWrapper_:
                             self.event.shutdown.set()
                             monitor_task.cancel()
                             update_task.cancel()
+                            event_update_task.cancel()
                             break
                         await asyncio.sleep(0.5)  # 短暂休眠，避免 CPU 占用过高
 
                     # 等待任务完成
-                    await asyncio.gather(opc_da_task, monitor_task, update_task, return_exceptions=True)
+                    await asyncio.gather(opc_da_task, monitor_task, update_task, event_update_task, return_exceptions=True)
                 
                 except Exception as e:
                     logging.error(f"_OPCDAWrapper_.start: Error occurred: {str(e)}")
@@ -1712,7 +1897,8 @@ class _OPCDAWrapper_:
                     self.event.shutdown.set()
                     monitor_task.cancel()
                     update_task.cancel()
-                    await asyncio.gather(opc_da_task, monitor_task, return_exceptions=True)
+                    event_update_task.cancel()
+                    await asyncio.gather(opc_da_task, monitor_task, update_task, event_update_task, return_exceptions=True)
                     logging.debug(f"_OPCDAWrapper_.start: Start task completed at {time.strftime('%H:%M:%S')}")
                     await asyncio.sleep(3)
 
@@ -1756,15 +1942,18 @@ async def main(max_time: Optional[float] = None, max_count: Optional[int] = None
         await asyncio.sleep(10)
         await wrapper.add_items(items2, "DIAGNOSTICS")
         await asyncio.sleep(5)
-        # 示例：动态调用 update_node
-        new_item = await wrapper.update_node("MODULES.AREA_V1.V1-EM.V1-AIC-DO.FS_CTRL1.IN_SCALE.EU100")
-        print(f"_OPCDAWrapper_.main: Added new item: {new_item}")
-        await asyncio.sleep(10)
+        # # 示例：动态调用 update_node
+        # new_item = await wrapper.update_node("MODULES.AREA_V1.V1-EM.V1-AIC-DO.FS_CTRL1.IN_SCALE.EU100")
+        # print(f"_OPCDAWrapper_.main: Added new item: {new_item}")
+        # await asyncio.sleep(10)
         
-        # 示例：动态调用 broswe_folder
-        await wrapper.broswe_folder(base_path="MODULES.AREA_V1.V1-EM.V1-AIC-DO.FS_CTRL1.IN_SCALE")
-        print("_OPCDAWrapper_.main: Browsed and updated structure under MODULES.AREA_V1.V1-EM.V1-AIC-DO.FS_CTRL1.IN_SCALE")
+        # # 示例：动态调用 broswe_folder
+        # await wrapper.broswe_folder(base_path="MODULES.AREA_V1.V1-EM.V1-AIC-DO.FS_CTRL1.IN_SCALE")
+        # print("_OPCDAWrapper_.main: Browsed and updated structure under MODULES.AREA_V1.V1-EM.V1-AIC-DO.FS_CTRL1.IN_SCALE")
         
+     
+ 
+
         # 等待手动停止或超时
         if manual_stop:
             await asyncio.sleep(30)
