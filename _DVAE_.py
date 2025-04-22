@@ -3,8 +3,7 @@ import logging
 import asyncio
 from datetime import datetime, timedelta
 
-# 配置更详细的日志
-logging.basicConfig(level=logging.DEBUG)
+
 
 class EventChronicleClient:
     def __init__(self, server="PROPLUS", instance="DELTAV_CHRONICLE", trusted_connection=True):
@@ -24,9 +23,9 @@ class EventChronicleClient:
             )
             self.conn = pyodbc.connect(conn_str)
             self.cursor = self.conn.cursor()
-            logging.info(f"Connected to SQL Server: {self.server}")
+            logging.debug(f"EventChronicleClient:Connected to SQL Server: {self.server}")
         except Exception as e:
-            logging.error(f"Failed to connect to SQL Server: {str(e)}")
+            logging.error(f"EventChronicleClient:Failed to connect to SQL Server: {str(e)}")
             raise
 
     def disconnect(self):
@@ -34,7 +33,7 @@ class EventChronicleClient:
             self.cursor.close()
         if self.conn:
             self.conn.close()
-            logging.info("Disconnected from SQL Server")
+            logging.debug("EventChronicleClient:Disconnected from SQL Server")
 
     
     def fetch_events(self, seconds_back=60, filters=None):
@@ -124,11 +123,11 @@ class EventChronicleClient:
                 for row in self.cursor.fetchall()
             ])
             
-            logging.debug(f"Fetched {len(events)} events with filters: {filters}")
+            logging.debug(f"EventChronicleClient:Fetched {len(events)} events with filters: {filters}")
             return sorted(events, key=lambda x: x["EventTime"], reverse=True)
             
         except Exception as e:
-            logging.error(f"Failed to fetch events: {str(e)}")
+            logging.error(f"EventChronicleClient:Failed to fetch events: {str(e)}")
             return []
 
     def filter_events(self, filters=None):
@@ -253,37 +252,38 @@ class EventChronicleClient:
                     }
                     for row in self.cursor.fetchall()
                 ])
-                logging.debug("No events found in main database, queried overflow database")
+                logging.debug("EventChronicleClient:No events found in main database, queried overflow database")
             
-            logging.debug(f"Fetched {len(events)} events with filters: {filters}")
+            logging.debug(f"EventChronicleClient:Fetched {len(events)} events with filters: {filters}")
             return sorted(events, key=lambda x: x["EventTime"], reverse=True)
             
         except Exception as e:
-            logging.error(f"Failed to fetch filtered events: {str(e)}")
+            logging.error(f"EventChronicleClient:Failed to fetch filtered events: {str(e)}")
             return []
 
 async def main():
+    #sql_client = EventChronicleClient(server="localhost", instance="DELTAV_CHRONICLE")
     sql_client = EventChronicleClient(server="10.8.0.6,55114", instance="DELTAV_CHRONICLE")
     try:
         sql_client.connect()
-        filters = {
-                                "Category": "PROCESS",
-                                "Area": "AREA_V1",
-                                "Event_Type": "ALARM",
-                                "Attribute": ["LO_ALM","LO_LO_ALM","HI_ALM","HI_HI_ALM","PVBAD_ALM"]
+        # filters = {
+        #                         "Category": "PROCESS",
+        #                         "Area": "AREA_V1",
+        #                         "Event_Type": "ALARM",
+        #                         "Attribute": ["LO_ALM","LO_LO_ALM","HI_ALM","HI_HI_ALM","PVBAD_ALM"]
                                                                       
-                            }
-        events = sql_client.fetch_events(seconds_back=5,filters=filters)
-        for event in events:
-            print(event)
+        #                     }
+        # events = sql_client.fetch_events(seconds_back=5,filters=filters)
+        # for event in events:
+        #     print(event)
 
 
         filters = {
             "Category": "USER", #PROCESS
             "Event_Type": "CHANGE", #ALARM
-            "Area": ["AREA_V1", "AREA_V2"] , # 查询 AREA_V1 和 AREA_V2    
-            "start_time": "2025-04-09 10:00:00",
-            "end_time": "2025-04-10 12:00:00"
+            "Area": ["AREA_V1", "AREA_V2"]  # 查询 AREA_V1 和 AREA_V2    
+            # "start_time": "2025-04-09 10:00:00",
+            # "end_time": "2025-04-10 12:00:00"
         }
         events = sql_client.filter_events(filters=filters)
         for event in events:
@@ -292,7 +292,7 @@ async def main():
 
        
     except Exception as e:
-        logging.error(f"Error in main: {str(e)}")
+        ptint(f"Error in main: {str(e)}")
         raise
     finally:
         sql_client.disconnect()
