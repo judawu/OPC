@@ -1,0 +1,8 @@
+ {
+    "Category": "USER", 
+    "Event_Type": "CHANGE", 
+    "Area": ["AREA_V1", "AREA_V2"]  ,
+    "start_time": "2025-04-14 10:00:00",
+    "end_time": "2025-04-23 12:00:00"
+ 
+}

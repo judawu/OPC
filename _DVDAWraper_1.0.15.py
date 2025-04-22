@@ -170,7 +170,7 @@ class CustomDAManager:
                                     try:
                                         results = self.opcda.write(items_to_write,values, write_group_name, write_update_rate)
                                         if all(results):
-                                            logging.debug(f"CustomDAManager.opcdathread:Successfully wrote {values} to {items_to_write}")
+                                            logging.debug(f"CustomDAManager.opcda_thread:Successfully wrote {values} to {items_to_write}")
                                         else:
                                             failed_items = [item for item, success in zip(items_to_write, results) if not success]
                                             logging.warning(f"CustomDAManager.opcda_thread:Partially succeeded: Failed to write to {failed_items}")
@@ -276,7 +276,7 @@ class CustomDAManager:
                     await self.create_structure(folder,value, path)
                 elif value is not None:
                     # value 是 OPC DA item 路径，记录但不立即更新
-                    logging.debug(f"_OPCDAWCustomDAManagerrapper_.create_structure: Found item path {value}, awaiting client call to update")
+                    logging.debug(f"CustomDAManager.create_structure: Found item path {value}, awaiting client call to update")
                     # 添加方法到 folder，客户端可调用
                     method_name = f"UpdateItem_{key}"
                     # 检查当前节点下是否已存在同名方法
@@ -681,9 +681,10 @@ class CustomDAManager:
                                 except (ValueError, TypeError) as e:
                                 
                                     await self.wrapper.node.last_error_desc.write_value(f"CustomDAManage.write_item: Type mismatch for {items[i]}, expected {expected_type}, got {type(values[i])}")
-                                    return [ua.Variant(False, ua.VariantType.Boolean)]
-
+                                   
+                                    return [ua.Variant(False, ua.VariantType.Boolean), ua.Variant("Type mismatch", ua.VariantType.String)]
                     results = await self.async_write(values,items)
+                    logging.debug(f"CustomDAManage.write_item: write results for  {items} is {results}")
                     for item, value, success in zip(items, values, results):
                         if not success:
                             continue
@@ -715,14 +716,14 @@ class CustomDAManager:
                                 await node.write_value(value)
                             except ua.UaStatusCodeError as e:
                                 logging.warning(f"CustomDAManage.write_items:Failed to update UA node {item}: {e}")
-                    #return [ua.Variant(results, ua.VariantType.Boolean)]
-                    return [ua.Variant(all(results), ua.VariantType.Boolean)]
+                    return [ua.Variant(results, ua.VariantType.Boolean)]
+                    #return [ua.Variant(all(results), ua.VariantType.Boolean)]
                 except Exception as e:
                     logging.error(f"CustomDAManage.write_items:Error in write_items: {str(e)}")
                     await self.wrapper.node.last_error_desc.write_value(f"CustomDAManage.write_items:Error in write_items,Error Occured: {str(e)}")
+                    return [ua.Variant(False, ua.VariantType.Boolean), ua.Variant(f"{str(e)}", ua.VariantType.String)]
           
-          
-                    raise
+                 
 
         async def _process_json_structure(self, structure: Dict, base_path: str):
             

@@ -1,0 +1,290 @@
+2025-04-22 21:42:13,101 - DEBUG - Using proactor: IocpProactor
+2025-04-22 21:42:18,108 - DEBUG - Client connect: use_certificate set to False,Connecting with no security policy (SecurityPolicy#None)
+2025-04-22 21:42:18,109 - DEBUG - Client connect: Attempting to connect to server...
+2025-04-22 21:42:18,134 - WARNING - Sending plain-text password
+2025-04-22 21:42:18,137 - DEBUG - Client connect: Connected to server as EMERSON with username/password
+2025-04-22 21:42:18,137 - DEBUG - CreateBrowser: connected sucessful, try to create browser to nodes
+2025-04-22 21:42:18,192 - DEBUG - get_server_certificate: Retrieved server certificate and saved to D:\opctunnel\cert\clientcert\server_cert.pem
+2025-04-22 21:42:18,192 - DEBUG - Server certificate is valid
+2025-04-22 21:42:18,197 - DEBUG - Client disconnect: Disconnected from server as EMERSON
+2025-04-22 21:42:18,199 - DEBUG - Client connect: Using server certificate: Subject=<Name(CN=OPC.DELTAV.1,O=xAI,C=US)>, Serial=668351994246422930110942060798124668722428029869
+2025-04-22 21:42:18,199 - INFO - Client connect: Client certificate D:\opctunnel\cert\clientcert\client_cert_opcuaclient1.pem or key D:\opctunnel\cert\clientcert\client_cert_opcuaclient1_key.pem not found, generating...
+2025-04-22 21:42:18,396 - DEBUG - Generated client certificate client_cert_opcuaclient1 in D:\opctunnel\cert\clientcert
+2025-04-22 21:42:18,396 - DEBUG - Client connect: set client security policy: http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256, mode=3 (Value=3)
+2025-04-22 21:42:18,916 - DEBUG - Client connect: Security policy set successfully
+2025-04-22 21:42:18,916 - DEBUG - Client connect: Attempting to connect to server...
+2025-04-22 21:42:19,013 - DEBUG - Client connect: Connected to server as EMERSON with certificate
+2025-04-22 21:42:19,013 - DEBUG - CreateBrowser: connected sucessful, try to create browser to nodes
+2025-04-22 21:42:19,071 - DEBUG - generate_server_certificate: Calling generate_server_certificate to update security policy...
+2025-04-22 21:42:19,553 - INFO - generate_server_certificate:Calling generate_server_certificate ...: True
+2025-04-22 21:42:19,562 - DEBUG - set_server_policy: Set server security policy to AES256Sha256RsaPss:True
+2025-04-22 21:42:19,562 - DEBUG - set_server_policy: Set client security policy: policy=http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss, mode=3 (Value=3)
+2025-04-22 21:42:19,566 - DEBUG - Client disconnect: Disconnected from server as EMERSON
+2025-04-22 21:42:28,113 - DEBUG - Client connect: use_certificate set to False,Connecting with no security policy (SecurityPolicy#None)
+2025-04-22 21:42:28,113 - DEBUG - Client connect: Attempting to connect to server...
+2025-04-22 21:42:28,115 - DEBUG - Client connect: use_certificate set to False,Connecting with no security policy (SecurityPolicy#None)
+2025-04-22 21:42:28,115 - DEBUG - Client connect: Attempting to connect to server...
+2025-04-22 21:42:28,125 - WARNING - Sending plain-text password
+2025-04-22 21:42:28,127 - WARNING - Sending plain-text password
+2025-04-22 21:42:28,129 - DEBUG - Client connect: Connected to server as default with username/password
+2025-04-22 21:42:28,129 - DEBUG - CreateBrowser: connected sucessful, try to create browser to nodes
+2025-04-22 21:42:28,131 - DEBUG - Client connect: Connected to server as default with username/password
+2025-04-22 21:42:28,131 - DEBUG - CreateBrowser: connected sucessful, try to create browser to nodes
+2025-04-22 21:42:28,184 - DEBUG - get_server_certificate: Retrieved server certificate and saved to D:\opctunnel\cert\clientcert\server_cert.pem
+2025-04-22 21:42:28,184 - DEBUG - Server certificate is valid
+2025-04-22 21:42:28,185 - DEBUG - get_server_certificate: Retrieved server certificate and saved to D:\opctunnel\cert\clientcert\server_cert.pem
+2025-04-22 21:42:28,185 - DEBUG - Server certificate is valid
+2025-04-22 21:42:28,187 - DEBUG - Client disconnect: Disconnected from server as default
+2025-04-22 21:42:28,188 - DEBUG - Client connect: Using server certificate: Subject=<Name(CN=OPC.DELTAV.1,O=xAI,C=US)>, Serial=668351994246422930110942060798124668722428029869
+2025-04-22 21:42:28,189 - INFO - Client connect: Client certificate D:\opctunnel\cert\clientcert\client_cert_opcuaclient2.pem or key D:\opctunnel\cert\clientcert\client_cert_opcuaclient2_key.pem not found, generating...
+2025-04-22 21:42:28,953 - DEBUG - Generated client certificate client_cert_opcuaclient2 in D:\opctunnel\cert\clientcert
+2025-04-22 21:42:28,953 - DEBUG - Client connect: set client security policy: http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256, mode=3 (Value=3)
+2025-04-22 21:42:28,955 - DEBUG - Client disconnect: Disconnected from server as default
+2025-04-22 21:42:29,592 - DEBUG - Client connect: Security policy set successfully
+2025-04-22 21:42:29,593 - DEBUG - Client connect: Attempting to connect to server...
+2025-04-22 21:42:29,595 - DEBUG - Client connect: use_certificate set to False,Connecting with no security policy (SecurityPolicy#None)
+2025-04-22 21:42:29,596 - DEBUG - Client connect: Attempting to connect to server...
+2025-04-22 21:42:29,697 - WARNING - Sending plain-text password
+2025-04-22 21:42:29,713 - DEBUG - Client connect: Connected to server as default with certificate
+2025-04-22 21:42:29,713 - DEBUG - CreateBrowser: connected sucessful, try to create browser to nodes
+2025-04-22 21:42:29,719 - DEBUG - Client connect: Connected to server as EMERSON with username/password
+2025-04-22 21:42:29,720 - DEBUG - CreateBrowser: connected sucessful, try to create browser to nodes
+2025-04-22 21:42:29,793 - DEBUG - Read: Node V1-IO/AI1_SCI1.EU100 not found,please use add item function to add it first
+2025-04-22 21:42:29,800 - DEBUG - get_server_certificate: Retrieved server certificate and saved to D:\opctunnel\cert\clientcert\server_cert.pem
+2025-04-22 21:42:29,800 - DEBUG - Server certificate is valid
+2025-04-22 21:42:29,815 - DEBUG - Client disconnect: Disconnected from server as EMERSON
+2025-04-22 21:42:29,817 - DEBUG - Client connect: Using server certificate: Subject=<Name(CN=OPC.DELTAV.1,O=xAI,C=US)>, Serial=668351994246422930110942060798124668722428029869
+2025-04-22 21:42:29,818 - DEBUG - Client connect: set client security policy: http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256, mode=3 (Value=3)
+2025-04-22 21:42:30,378 - DEBUG - Client connect: Security policy set successfully
+2025-04-22 21:42:30,378 - DEBUG - Client connect: Attempting to connect to server...
+2025-04-22 21:42:30,490 - DEBUG - Client connect: Connected to server as EMERSON with certificate
+2025-04-22 21:42:30,491 - DEBUG - CreateBrowser: connected sucessful, try to create browser to nodes
+2025-04-22 21:42:30,565 - DEBUG - Read: Node V1-IO/AI1_SCI1.EU100 not found,please use add item function to add it first
+2025-04-22 21:42:30,745 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=74, continue
+2025-04-22 21:42:30,758 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=77, continue
+2025-04-22 21:42:30,768 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=80, continue
+2025-04-22 21:42:30,784 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=83, continue
+2025-04-22 21:42:30,796 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=86, continue
+2025-04-22 21:42:30,799 - DEBUG - Found target V1-IO/AI1_SCI1.EU100 node at:ns=2;i=144
+2025-04-22 21:42:30,865 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=74, continue
+2025-04-22 21:42:30,879 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=77, continue
+2025-04-22 21:42:30,892 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=80, continue
+2025-04-22 21:42:30,908 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=83, continue
+2025-04-22 21:42:30,924 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=86, continue
+2025-04-22 21:42:30,926 - DEBUG - Found target V1-IO/AI1_SCI1.EU100 node at:ns=2;i=144
+2025-04-22 21:42:33,803 - DEBUG - Read: V1-IO/AI1_SCI1.EU100 = 32766.0
+2025-04-22 21:42:33,808 - DEBUG - write: Starting write attempt 1 for items: ['V1-IO/AI1_SCI1.EU100', 'V1-AI-1/FS_CTRL1/MOD_DESC.CV']
+2025-04-22 21:42:33,931 - DEBUG - Read: V1-IO/AI1_SCI1.EU100 = 32766.0
+2025-04-22 21:42:33,934 - DEBUG - Loaded client certificate from D:\opctunnel\cert\clientcert\client_cert_opcuaclient1.pem for transfer
+2025-04-22 21:42:33,942 - DEBUG - Successfully transferred client certificate to server
+2025-04-22 21:42:35,897 - DEBUG - write:  Write attempt 1 succeeded with results: [True, True]
+2025-04-22 21:42:35,900 - DEBUG - write: Starting write attempt 1 for items: ['V1-IO/AI1_SCI1.EU100', 'V1-AI-1/FS_CTRL1/MOD_DESC.CV']
+2025-04-22 21:42:36,903 - DEBUG - Read: V1-IO/AI1_SCI1.EU100 = 32787.0
+2025-04-22 21:42:36,903 - DEBUG - Read: Node V1-AI-1/FS_CTRL1/MOD_DESC.CV not found,please use add item function to add it first
+2025-04-22 21:42:37,114 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=74, continue
+2025-04-22 21:42:37,122 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=77, continue
+2025-04-22 21:42:37,131 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=80, continue
+2025-04-22 21:42:37,139 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=83, continue
+2025-04-22 21:42:37,148 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=86, continue
+2025-04-22 21:42:37,153 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=145, continue
+2025-04-22 21:42:37,153 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=147, continue
+2025-04-22 21:42:37,159 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=151, continue
+2025-04-22 21:42:37,159 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=153, continue
+2025-04-22 21:42:37,161 - DEBUG - Found target V1-AI-1/FS_CTRL1/MOD_DESC.CV node at:ns=2;i=156
+2025-04-22 21:42:37,999 - DEBUG - write:  Write attempt 1 succeeded with results: [True, True]
+2025-04-22 21:42:38,957 - DEBUG - Client connect: use_certificate set to False,Connecting with no security policy (SecurityPolicy#None)
+2025-04-22 21:42:38,957 - DEBUG - Client connect: Attempting to connect to server...
+2025-04-22 21:42:38,965 - WARNING - Sending plain-text password
+2025-04-22 21:42:38,970 - DEBUG - Client connect: Connected to server as default with username/password
+2025-04-22 21:42:38,970 - DEBUG - CreateBrowser: connected sucessful, try to create browser to nodes
+2025-04-22 21:42:39,005 - DEBUG - Read: V1-IO/AI1_SCI1.EU100 = 32766.0
+2025-04-22 21:42:39,006 - DEBUG - Read: Node V1-AI-1/FS_CTRL1/MOD_DESC.CV not found,please use add item function to add it first
+2025-04-22 21:42:39,017 - DEBUG - Read: Node V1-IO/AI1_SCI1.EU100 not found,please use add item function to add it first
+2025-04-22 21:42:39,259 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=74, continue
+2025-04-22 21:42:39,265 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=74, continue
+2025-04-22 21:42:39,268 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=77, continue
+2025-04-22 21:42:39,274 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=77, continue
+2025-04-22 21:42:39,277 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=80, continue
+2025-04-22 21:42:39,285 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=80, continue
+2025-04-22 21:42:39,289 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=83, continue
+2025-04-22 21:42:39,297 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=83, continue
+2025-04-22 21:42:39,300 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=86, continue
+2025-04-22 21:42:39,306 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=145, continue
+2025-04-22 21:42:39,306 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=147, continue
+2025-04-22 21:42:39,307 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=86, continue
+2025-04-22 21:42:39,308 - DEBUG - Found target V1-IO/AI1_SCI1.EU100 node at:ns=2;i=144
+2025-04-22 21:42:39,310 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=151, continue
+2025-04-22 21:42:39,311 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=153, continue
+2025-04-22 21:42:39,313 - DEBUG - Found target V1-AI-1/FS_CTRL1/MOD_DESC.CV node at:ns=2;i=156
+2025-04-22 21:42:40,166 - DEBUG - Read: V1-AI-1/FS_CTRL1/MOD_DESC.CV = WELCOME
+2025-04-22 21:42:40,170 - DEBUG - query_security_policies: Queried server security policies: ['http://opcfoundation.org/UA/SecurityPolicy#None', 'http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256', 'http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256', 'http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep', 'http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep', 'http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss', 'http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss']
+2025-04-22 21:42:40,174 - DEBUG - Client disconnect: Disconnected from server as default
+2025-04-22 21:42:42,313 - DEBUG - Read: V1-IO/AI1_SCI1.EU100 = 32766.0
+2025-04-22 21:42:42,316 - DEBUG - Read: Node V1-AI-1/FS_CTRL1/MOD_DESC.CV not found,please use add item function to add it first
+2025-04-22 21:42:42,324 - DEBUG - Read: V1-AI-1/FS_CTRL1/MOD_DESC.CV = WELCOME
+2025-04-22 21:42:42,330 - DEBUG - query_security_policies: Queried server security policies: ['http://opcfoundation.org/UA/SecurityPolicy#None', 'http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256', 'http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256', 'http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep', 'http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep', 'http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss', 'http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss']
+2025-04-22 21:42:42,343 - DEBUG - Client disconnect: Disconnected from server as EMERSON
+2025-04-22 21:42:42,495 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=74, continue
+2025-04-22 21:42:42,502 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=77, continue
+2025-04-22 21:42:42,508 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=80, continue
+2025-04-22 21:42:42,515 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=83, continue
+2025-04-22 21:42:42,524 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=86, continue
+2025-04-22 21:42:42,527 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=145, continue
+2025-04-22 21:42:42,527 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=147, continue
+2025-04-22 21:42:42,531 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=151, continue
+2025-04-22 21:42:42,531 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=153, continue
+2025-04-22 21:42:42,533 - DEBUG - Found target V1-AI-1/FS_CTRL1/MOD_DESC.CV node at:ns=2;i=156
+2025-04-22 21:42:45,537 - DEBUG - Read: V1-AI-1/FS_CTRL1/MOD_DESC.CV = WELCOME
+2025-04-22 21:42:45,542 - DEBUG - query_security_policies: Queried server security policies: ['http://opcfoundation.org/UA/SecurityPolicy#None', 'http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256', 'http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256', 'http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep', 'http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep', 'http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss', 'http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss']
+2025-04-22 21:42:45,549 - DEBUG - Client disconnect: Disconnected from server as default
+2025-04-22 21:42:45,550 - DEBUG - Client connect: Using server certificate: Subject=<Name(CN=OPC.DELTAV.1,O=xAI,C=US)>, Serial=668351994246422930110942060798124668722428029869
+2025-04-22 21:42:45,550 - DEBUG - Client connect: set client security policy: http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256, mode=3 (Value=3)
+2025-04-22 21:42:46,079 - DEBUG - Client connect: Security policy set successfully
+2025-04-22 21:42:46,079 - DEBUG - Client connect: Attempting to connect to server...
+2025-04-22 21:42:46,177 - DEBUG - Client connect: Connected to server as EMERSON with certificate
+2025-04-22 21:42:46,177 - DEBUG - CreateBrowser: connected sucessful, try to create browser to nodes
+2025-04-22 21:42:46,769 - INFO - estore_server_certificate: Calling restore_initial_certificate...: True
+2025-04-22 21:42:46,771 - DEBUG - Client disconnect: Disconnected from server as EMERSON
+2025-04-22 21:43:51,998 - DEBUG - Using proactor: IocpProactor
+2025-04-22 21:43:57,003 - DEBUG - Client connect: use_certificate set to False,Connecting with no security policy (SecurityPolicy#None)
+2025-04-22 21:43:57,004 - DEBUG - Client connect: Attempting to connect to server...
+2025-04-22 21:43:57,032 - WARNING - Sending plain-text password
+2025-04-22 21:43:57,037 - DEBUG - Client connect: Connected to server as EMERSON with username/password
+2025-04-22 21:43:57,037 - DEBUG - CreateBrowser: connected sucessful, try to create browser to nodes
+2025-04-22 21:43:57,079 - DEBUG - get_server_certificate: Retrieved server certificate and saved to D:\opctunnel\cert\clientcert\server_cert.pem
+2025-04-22 21:43:57,079 - DEBUG - Server certificate is valid
+2025-04-22 21:43:57,081 - DEBUG - Client disconnect: Disconnected from server as EMERSON
+2025-04-22 21:43:57,084 - DEBUG - Client connect: Using server certificate: Subject=<Name(CN=OPC.DELTAV.1,O=xAI,C=US)>, Serial=668351994246422930110942060798124668722428029869
+2025-04-22 21:43:57,084 - DEBUG - Client connect: set client security policy: http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256, mode=3 (Value=3)
+2025-04-22 21:43:57,589 - DEBUG - Client connect: Security policy set successfully
+2025-04-22 21:43:57,589 - DEBUG - Client connect: Attempting to connect to server...
+2025-04-22 21:43:57,703 - DEBUG - Client connect: Connected to server as EMERSON with certificate
+2025-04-22 21:43:57,703 - DEBUG - CreateBrowser: connected sucessful, try to create browser to nodes
+2025-04-22 21:43:57,765 - DEBUG - generate_server_certificate: Calling generate_server_certificate to update security policy...
+2025-04-22 21:43:57,956 - INFO - generate_server_certificate:Calling generate_server_certificate ...: True
+2025-04-22 21:43:57,962 - DEBUG - set_server_policy: Set server security policy to AES256Sha256RsaPss:True
+2025-04-22 21:43:57,962 - DEBUG - set_server_policy: Set client security policy: policy=http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss, mode=3 (Value=3)
+2025-04-22 21:43:57,965 - DEBUG - Client disconnect: Disconnected from server as EMERSON
+2025-04-22 21:44:07,011 - DEBUG - Client connect: use_certificate set to False,Connecting with no security policy (SecurityPolicy#None)
+2025-04-22 21:44:07,011 - DEBUG - Client connect: Attempting to connect to server...
+2025-04-22 21:44:07,014 - DEBUG - Client connect: use_certificate set to False,Connecting with no security policy (SecurityPolicy#None)
+2025-04-22 21:44:07,014 - DEBUG - Client connect: Attempting to connect to server...
+2025-04-22 21:44:07,022 - WARNING - Sending plain-text password
+2025-04-22 21:44:07,024 - WARNING - Sending plain-text password
+2025-04-22 21:44:07,026 - DEBUG - Client connect: Connected to server as default with username/password
+2025-04-22 21:44:07,026 - DEBUG - CreateBrowser: connected sucessful, try to create browser to nodes
+2025-04-22 21:44:07,030 - DEBUG - Client connect: Connected to server as default with username/password
+2025-04-22 21:44:07,030 - DEBUG - CreateBrowser: connected sucessful, try to create browser to nodes
+2025-04-22 21:44:07,083 - DEBUG - get_server_certificate: Retrieved server certificate and saved to D:\opctunnel\cert\clientcert\server_cert.pem
+2025-04-22 21:44:07,084 - DEBUG - Server certificate is valid
+2025-04-22 21:44:07,085 - DEBUG - get_server_certificate: Retrieved server certificate and saved to D:\opctunnel\cert\clientcert\server_cert.pem
+2025-04-22 21:44:07,085 - DEBUG - Server certificate is valid
+2025-04-22 21:44:07,087 - DEBUG - Client disconnect: Disconnected from server as default
+2025-04-22 21:44:07,088 - DEBUG - Client connect: Using server certificate: Subject=<Name(CN=OPC.DELTAV.1,O=xAI,C=US)>, Serial=668351994246422930110942060798124668722428029869
+2025-04-22 21:44:07,089 - DEBUG - Client connect: set client security policy: http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256, mode=3 (Value=3)
+2025-04-22 21:44:07,091 - DEBUG - Client disconnect: Disconnected from server as default
+2025-04-22 21:44:07,602 - DEBUG - Client connect: Security policy set successfully
+2025-04-22 21:44:07,602 - DEBUG - Client connect: Attempting to connect to server...
+2025-04-22 21:44:07,714 - DEBUG - Client connect: Connected to server as default with certificate
+2025-04-22 21:44:07,714 - DEBUG - CreateBrowser: connected sucessful, try to create browser to nodes
+2025-04-22 21:44:07,781 - DEBUG - Read: Node V1-IO/AI1_SCI1.EU100 not found,please use add item function to add it first
+2025-04-22 21:44:07,968 - DEBUG - Client connect: use_certificate set to False,Connecting with no security policy (SecurityPolicy#None)
+2025-04-22 21:44:07,968 - DEBUG - Client connect: Attempting to connect to server...
+2025-04-22 21:44:07,981 - WARNING - Sending plain-text password
+2025-04-22 21:44:07,985 - DEBUG - Client connect: Connected to server as EMERSON with username/password
+2025-04-22 21:44:07,985 - DEBUG - CreateBrowser: connected sucessful, try to create browser to nodes
+2025-04-22 21:44:08,056 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=74, continue
+2025-04-22 21:44:08,065 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=77, continue
+2025-04-22 21:44:08,069 - DEBUG - get_server_certificate: Retrieved server certificate and saved to D:\opctunnel\cert\clientcert\server_cert.pem
+2025-04-22 21:44:08,070 - DEBUG - Server certificate is valid
+2025-04-22 21:44:08,072 - DEBUG - Client disconnect: Disconnected from server as EMERSON
+2025-04-22 21:44:08,074 - DEBUG - Client connect: Using server certificate: Subject=<Name(CN=OPC.DELTAV.1,O=xAI,C=US)>, Serial=668351994246422930110942060798124668722428029869
+2025-04-22 21:44:08,074 - DEBUG - Client connect: set client security policy: http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256, mode=3 (Value=3)
+2025-04-22 21:44:08,079 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=80, continue
+2025-04-22 21:44:08,623 - DEBUG - Client connect: Security policy set successfully
+2025-04-22 21:44:08,623 - DEBUG - Client connect: Attempting to connect to server...
+2025-04-22 21:44:08,630 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=83, continue
+2025-04-22 21:44:08,731 - DEBUG - Client connect: Connected to server as EMERSON with certificate
+2025-04-22 21:44:08,732 - DEBUG - CreateBrowser: connected sucessful, try to create browser to nodes
+2025-04-22 21:44:08,733 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=86, continue
+2025-04-22 21:44:08,737 - DEBUG - Found target V1-IO/AI1_SCI1.EU100 node at:ns=2;i=144
+2025-04-22 21:44:08,794 - DEBUG - Read: Node V1-IO/AI1_SCI1.EU100 not found,please use add item function to add it first
+2025-04-22 21:44:09,036 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=74, continue
+2025-04-22 21:44:09,047 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=77, continue
+2025-04-22 21:44:09,056 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=80, continue
+2025-04-22 21:44:09,063 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=83, continue
+2025-04-22 21:44:09,073 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=86, continue
+2025-04-22 21:44:09,075 - DEBUG - Found target V1-IO/AI1_SCI1.EU100 node at:ns=2;i=144
+2025-04-22 21:44:11,742 - DEBUG - Read: V1-IO/AI1_SCI1.EU100 = 32766.0
+2025-04-22 21:44:11,748 - DEBUG - write: Starting write attempt 1 for items: ['V1-IO/AI1_SCI1.EU100', 'V1-AI-1/FS_CTRL1/MOD_DESC.CV']
+2025-04-22 21:44:12,080 - DEBUG - Read: V1-IO/AI1_SCI1.EU100 = 32766.0
+2025-04-22 21:44:12,083 - DEBUG - Loaded client certificate from D:\opctunnel\cert\clientcert\client_cert_opcuaclient1.pem for transfer
+2025-04-22 21:44:12,090 - DEBUG - Successfully transferred client certificate to server
+2025-04-22 21:44:13,797 - DEBUG - write:  Write attempt 1 succeeded with results: [True, True]
+2025-04-22 21:44:13,799 - DEBUG - write: Starting write attempt 1 for items: ['V1-IO/AI1_SCI1.EU100', 'V1-AI-1/FS_CTRL1/MOD_DESC.CV']
+2025-04-22 21:44:14,802 - DEBUG - Read: V1-IO/AI1_SCI1.EU100 = 32787.0
+2025-04-22 21:44:14,802 - DEBUG - Read: Node V1-AI-1/FS_CTRL1/MOD_DESC.CV not found,please use add item function to add it first
+2025-04-22 21:44:15,025 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=74, continue
+2025-04-22 21:44:15,034 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=77, continue
+2025-04-22 21:44:15,044 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=80, continue
+2025-04-22 21:44:15,054 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=83, continue
+2025-04-22 21:44:15,065 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=86, continue
+2025-04-22 21:44:15,070 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=145, continue
+2025-04-22 21:44:15,070 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=147, continue
+2025-04-22 21:44:15,076 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=151, continue
+2025-04-22 21:44:15,076 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=153, continue
+2025-04-22 21:44:15,079 - DEBUG - Found target V1-AI-1/FS_CTRL1/MOD_DESC.CV node at:ns=2;i=156
+2025-04-22 21:44:15,898 - DEBUG - write:  Write attempt 1 succeeded with results: [True, True]
+2025-04-22 21:44:16,910 - DEBUG - Read: V1-IO/AI1_SCI1.EU100 = 32766.0
+2025-04-22 21:44:16,911 - DEBUG - Read: Node V1-AI-1/FS_CTRL1/MOD_DESC.CV not found,please use add item function to add it first
+2025-04-22 21:44:17,096 - DEBUG - Client connect: use_certificate set to False,Connecting with no security policy (SecurityPolicy#None)
+2025-04-22 21:44:17,097 - DEBUG - Client connect: Attempting to connect to server...
+2025-04-22 21:44:17,124 - WARNING - Sending plain-text password
+2025-04-22 21:44:17,134 - DEBUG - Client connect: Connected to server as default with username/password
+2025-04-22 21:44:17,134 - DEBUG - CreateBrowser: connected sucessful, try to create browser to nodes
+2025-04-22 21:44:17,277 - DEBUG - Read: Node V1-IO/AI1_SCI1.EU100 not found,please use add item function to add it first
+2025-04-22 21:44:17,459 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=74, continue
+2025-04-22 21:44:17,486 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=77, continue
+2025-04-22 21:44:17,502 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=80, continue
+2025-04-22 21:44:17,518 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=83, continue
+2025-04-22 21:44:17,536 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=86, continue
+2025-04-22 21:44:17,542 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=145, continue
+2025-04-22 21:44:17,542 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=147, continue
+2025-04-22 21:44:17,550 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=151, continue
+2025-04-22 21:44:17,550 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=153, continue
+2025-04-22 21:44:17,553 - DEBUG - Found target V1-AI-1/FS_CTRL1/MOD_DESC.CV node at:ns=2;i=156
+2025-04-22 21:44:17,725 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=74, continue
+2025-04-22 21:44:17,738 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=77, continue
+2025-04-22 21:44:17,746 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=80, continue
+2025-04-22 21:44:17,757 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=83, continue
+2025-04-22 21:44:17,776 - DEBUG - _find_node_: search V1-IO/AI1_SCI1.EU100, max_depth 3 reach atns=2;i=86, continue
+2025-04-22 21:44:17,778 - DEBUG - Found target V1-IO/AI1_SCI1.EU100 node at:ns=2;i=144
+2025-04-22 21:44:18,084 - DEBUG - Read: V1-AI-1/FS_CTRL1/MOD_DESC.CV = WELCOME
+2025-04-22 21:44:18,091 - DEBUG - query_security_policies: Queried server security policies: ['http://opcfoundation.org/UA/SecurityPolicy#None', 'http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256', 'http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256', 'http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep', 'http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep', 'http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss', 'http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss']
+2025-04-22 21:44:18,099 - DEBUG - Client disconnect: Disconnected from server as default
+2025-04-22 21:44:20,558 - DEBUG - Read: V1-AI-1/FS_CTRL1/MOD_DESC.CV = WELCOME
+2025-04-22 21:44:20,563 - DEBUG - query_security_policies: Queried server security policies: ['http://opcfoundation.org/UA/SecurityPolicy#None', 'http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256', 'http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256', 'http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep', 'http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep', 'http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss', 'http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss']
+2025-04-22 21:44:20,568 - DEBUG - Client disconnect: Disconnected from server as EMERSON
+2025-04-22 21:44:20,781 - DEBUG - Read: V1-IO/AI1_SCI1.EU100 = 32766.0
+2025-04-22 21:44:20,784 - DEBUG - Read: Node V1-AI-1/FS_CTRL1/MOD_DESC.CV not found,please use add item function to add it first
+2025-04-22 21:44:20,940 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=74, continue
+2025-04-22 21:44:20,946 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=77, continue
+2025-04-22 21:44:20,951 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=80, continue
+2025-04-22 21:44:20,957 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=83, continue
+2025-04-22 21:44:20,965 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=86, continue
+2025-04-22 21:44:20,968 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=145, continue
+2025-04-22 21:44:20,969 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=147, continue
+2025-04-22 21:44:20,973 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=151, continue
+2025-04-22 21:44:20,973 - DEBUG - _find_node_: search V1-AI-1/FS_CTRL1/MOD_DESC.CV, max_depth 3 reach atns=2;i=153, continue
+2025-04-22 21:44:20,975 - DEBUG - Found target V1-AI-1/FS_CTRL1/MOD_DESC.CV node at:ns=2;i=156
+2025-04-22 21:44:23,978 - DEBUG - Read: V1-AI-1/FS_CTRL1/MOD_DESC.CV = WELCOME
+2025-04-22 21:44:23,982 - DEBUG - query_security_policies: Queried server security policies: ['http://opcfoundation.org/UA/SecurityPolicy#None', 'http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256', 'http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256', 'http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep', 'http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep', 'http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss', 'http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss']
+2025-04-22 21:44:23,986 - DEBUG - Client disconnect: Disconnected from server as default
+2025-04-22 21:44:23,987 - DEBUG - Client connect: Using server certificate: Subject=<Name(CN=OPC.DELTAV.1,O=xAI,C=US)>, Serial=668351994246422930110942060798124668722428029869
+2025-04-22 21:44:23,987 - DEBUG - Client connect: set client security policy: http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256, mode=3 (Value=3)
+2025-04-22 21:44:24,459 - DEBUG - Client connect: Security policy set successfully
+2025-04-22 21:44:24,459 - DEBUG - Client connect: Attempting to connect to server...
+2025-04-22 21:44:24,556 - DEBUG - Client connect: Connected to server as EMERSON with certificate
+2025-04-22 21:44:24,557 - DEBUG - CreateBrowser: connected sucessful, try to create browser to nodes
+2025-04-22 21:44:25,139 - INFO - estore_server_certificate: Calling restore_initial_certificate...: True
+2025-04-22 21:44:25,142 - DEBUG - Client disconnect: Disconnected from server as EMERSON
