@@ -16,24 +16,24 @@ import logging
 from asyncua import ua
 class CustomSecurity:
         def __init__(self,wrapper):
-            self.wrapper = wrapper
-            self.base_dir = os.path.dirname(os.path.abspath(__file__))
-            self.cert_dir = os.path.join(self.base_dir, "cert")
-            self.initial_cert_path = os.path.join(self.cert_dir, "server_init_cert.pem")
-            self.initial_key_path = os.path.join(self.cert_dir, "server_init_key.pem")
-            self.cert_path = os.path.join(self.cert_dir, "server_cert.pem")
-            self.key_path = os.path.join(self.cert_dir, "server_key.pem")
-            self.trustedcert_dir=os.path.join(self.cert_dir, "trusted")
+            self._wrapper = wrapper
+            self._base_dir = os.path.dirname(os.path.abspath(__file__))
+            self._cert_dir = os.path.join(self._base_dir, "cert")
+            self._initial_cert_path = os.path.join(self._cert_dir, "server_init_cert.pem")
+            self._initial_key_path = os.path.join(self._cert_dir, "server_init_key.pem")
+            self._cert_path = os.path.join(self._cert_dir, "server_cert.pem")
+            self._key_path = os.path.join(self._cert_dir, "server_key.pem")
+            self._trustedcert_dir=os.path.join(self._cert_dir, "trusted")
            
             self.security_policies = None # 运行时动态填充
 
 
         async def generate_self_signed_cert(self,cert_path:str=None, key_path:str=None):
                 if cert_path is None or key_path is None:
-                    cert_path= self.cert_path
-                    key_path=self.key_path
-                name =  self.wrapper.node.name
-                application_uri=self.wrapper.node.application_uri
+                    cert_path= self._cert_path
+                    key_path=self._key_path
+                name =  self._wrapper.node.name
+                application_uri=self._wrapper.node.application_uri
                 logging.debug(f"_OPCDAWrapper_.generate_self_signed_cert: Generating self-signed certificate at {cert_path} and key at {key_path}")
                 try:
                     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -85,38 +85,38 @@ class CustomSecurity:
                     logging.info(f"_OPCDAWrapper_.generate_self_signed_cert:Successfully generated certificate at {cert_path} and key at {key_path}")
                 except Exception as e:
                     logging.error(f"_OPCDAWrapper_.generate_self_signed_cert:Failed to generate certificate: {str(e)}")
-                    if  self.wrapper.node.last_error_desc is not None:
-                        await  self.wrapper.node.last_error_desc.write_value(f"_OPCDAWrapper_.generate_self_signed_cert: Failed to generate certificate: {str(e)}")
+                    if  self._wrapper.node.last_error_desc is not None:
+                        await  self._wrapper.node.last_error_desc.write_value(f"_OPCDAWrapper_.generate_self_signed_cert: Failed to generate certificate: {str(e)}")
                         raise
         async def restore_initial_certificate(self,parent=None):
                 userrole = await self._get_current_userrole()
-                if not  self.wrapper.user_manager.check_method_permission(12, userrole):
+                if not  self._wrapper.user_manager.check_method_permission(12, userrole):
                     logging.warning(f"_OPCDAWrapper_.restore_initial_certificate:Unauthorized attempt to call restore_initial_certificate by")
-                    if  self.wrapper.node.last_error_code is not None and self.wrapper.node.last_error_desc is not None:
-                        await  self.wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
-                        await  self.wrapper.node.last_error_desc.write_value(f"_OPCDAWrapper_.restore_initial_certificate:Unauthorized attempt to call restore_initial_certificate ")
+                    if  self._wrapper.node.last_error_code is not None and self._wrapper.node.last_error_desc is not None:
+                        await  self._wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+                        await  self._wrapper.node.last_error_desc.write_value(f"_OPCDAWrapper_.restore_initial_certificate:Unauthorized attempt to call restore_initial_certificate ")
                     raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
                 try:
-                    await  self.wrapper.server.load_certificate(self.initial_cert_path)
-                    await  self.wrapper.server.load_private_key(self.initial_key_path)
-                    self.wrapper.server.set_security_policy(self.security_policies)
+                    await  self._wrapper.server.load_certificate(self.initial_cert_path)
+                    await  self._wrapper.server.load_private_key(self.initial_key_path)
+                    self._wrapper.server.set_security_policy(self.security_policies)
                     with open(self.initial_cert_path, "rb") as f:
                         
-                        await  self.wrapper.node.cert_node.write_value(f.read())
+                        await  self._wrapper.node.cert_node.write_value(f.read())
                     logging.info("_OPCDAWrapper_.restore_initial_certificate:Restored initial certificate and security policies")
                     return [ua.Variant(True, ua.VariantType.Boolean)]
                 except Exception as e:
                     logging.error(f"_OPCDAWrapper_.restore_initial_certificate:Failed to restore initial certificate: {str(e)}")
-                    if  self.wrapper.node.last_error_desc is not None: 
-                        await  self.wrapper.node.last_error_desc.write_value(f"_OPCDAWrapper_.restore_initial_certificate:Failed to restore initial certificate:,Error Occured: {str(e)}")
+                    if  self._wrapper.node.last_error_desc is not None: 
+                        await  self._wrapper.node.last_error_desc.write_value(f"_OPCDAWrapper_.restore_initial_certificate:Failed to restore initial certificate:,Error Occured: {str(e)}")
                     return [ua.Variant(False, ua.VariantType.Boolean)]     
         async def add_client_certificate(self,parent,client_cert_variant):
             """动态添加客户端证书到信任列表"""
             userrole = await self._get_current_userrole()
-            if not  self.wrapper.user_manager.check_method_permission(50, userrole):
+            if not  self._wrapper.user_manager.check_method_permission(50, userrole):
                     logging.warning(f"_OPCDAWrapper_.add_client_certificate:Unauthorized attempt to call add_client_certificate")
-                    await  self.wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
-                    await  self.wrapper.node.last_error_desc.write_value(f"_OPCDAWrapper_.add_client_certificate:Unauthorized attempt to call add_client_certificate ")
+                    await  self._wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+                    await  self._wrapper.node.last_error_desc.write_value(f"_OPCDAWrapper_.add_client_certificate:Unauthorized attempt to call add_client_certificate ")
                     raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
             client_cert_data = client_cert_variant.Value
             
@@ -126,7 +126,7 @@ class CustomSecurity:
                 logging.debug(f"_OPCDAWrapper_.add_client_certificate:Received client certificate: Subject={cert.subject}, Serial={cert.serial_number}")
             except Exception as e:
                 logging.error(f"_OPCDAWrapper_.add_client_certificate:Invalid client certificate: {e}")
-                await  self.wrapper.node.last_error_desc.write_value(f"_OPCDAWrapper_.add_client_certificate:Invalid client certificate,Error Occured: {str(e)}")
+                await  self._wrapper.node.last_error_desc.write_value(f"_OPCDAWrapper_.add_client_certificate:Invalid client certificate,Error Occured: {str(e)}")
                 return [ua.Variant(False, ua.VariantType.Boolean)]
 
             # 定义信任证书路径
@@ -146,10 +146,10 @@ class CustomSecurity:
         async def generate_server_certificate(self, parent):
                 userrole = await self._get_current_userrole()
             
-                if not  self.wrapper.user_manager.check_method_permission(4, userrole):
+                if not  self._wrapper.user_manager.check_method_permission(4, userrole):
                     logging.warning(f"CustomSecurity.generate_server_certificate:Unauthorized attempt to call generate_server_certificate ")
-                    await  self.wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
-                    await  self.wrapper.node.last_error_desc.write_value(f"CustomSecurity.generate_server_certificate:Unauthorized attempt to call generate_server_certificate ")
+                    await  self._wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+                    await  self._wrapper.node.last_error_desc.write_value(f"CustomSecurity.generate_server_certificate:Unauthorized attempt to call generate_server_certificate ")
                     raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
                 
                 try:
@@ -160,15 +160,15 @@ class CustomSecurity:
                 
                 except Exception as e:
                     logging.error(f"CustomSecurity.generate_server_certificate:Failed to generate certificate: {str(e)}")
-                    await  self.wrapper.node.last_error_desc.write_value(f"_OPCDAWrapper_.generate_server_certificate:FFailed to generate certificate,Error Occured: {str(e)}")
+                    await  self._wrapper.node.last_error_desc.write_value(f"_OPCDAWrapper_.generate_server_certificate:FFailed to generate certificate,Error Occured: {str(e)}")
                     return [ua.Variant(False, ua.VariantType.Boolean)]  # 失败时也返回列表
         async def set_server_policy(self, parent, security_policy_variant, sign_and_encrypt_variant):
                 userrole = await self._get_current_userrole()
             
-                if not  self.wrapper.user_manager.check_method_permission(12, userrole):
+                if not  self._wrapper.user_manager.check_method_permission(12, userrole):
                     logging.warning("_OPCDAWrapper_.set_server_policy:Unauthorized attempt to call set_server_policy")
-                    await  self.wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
-                    await  self.wrapper.node.last_error_desc.write_value(f"_OPCDAWrapper_.set_server_policy:nauthorized attempt to call set_server_policy ")
+                    await  self._wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+                    await  self._wrapper.node.last_error_desc.write_value(f"_OPCDAWrapper_.set_server_policy:nauthorized attempt to call set_server_policy ")
                     raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
                 try:
                     security_policy = security_policy_variant.Value
@@ -189,7 +189,7 @@ class CustomSecurity:
                     
                     logging.debug(f"_OPCDAWrapper_.set_server_policy:Updated security policy to {security_policy}:{'SignAndEncrypt' if sign_and_encrypt else 'Sign'}")
                 
-                    self.wrapper.server.set_security_policy(self.security_policies)
+                    self._wrapper.server.set_security_policy(self.security_policies)
                     logging.debug(f"_OPCDAWrapper_.set_server_policy:Security policies set: {[policy.URI for policy in self.security_policies]}")
                     return [ua.Variant(True, ua.VariantType.Boolean)]  # 失败时也返回列表
                 
@@ -197,7 +197,7 @@ class CustomSecurity:
                 
                 except Exception as e:
                     logging.error(f"_OPCDAWrapper_:Failed to update Security policies: {str(e)}")
-                    await  self.wrapper.node.last_error_desc.write_value(f"Failed to update Security policies: {str(e)}")
+                    await  self._wrapper.node.last_error_desc.write_value(f"Failed to update Security policies: {str(e)}")
                     return [ua.Variant(False, ua.VariantType.Boolean)]  # 失败时也返回列表
         async def _get_current_userrole(self):
             # 默认用户角色，假设未识别时为最低权限（如 Anonymous）
@@ -205,18 +205,18 @@ class CustomSecurity:
 
                 # 步骤 1：尝试获取外部客户端的 userrole
                 client_addr = None
-                if hasattr( self.wrapper.server.iserver, 'asyncio_transports') and  self.wrapper.server.iserver.asyncio_transports:
-                    transport =  self.wrapper.server.iserver.asyncio_transports[-1]
+                if hasattr( self._wrapper.server.iserver, 'asyncio_transports') and  self._wrapper.server.iserver.asyncio_transports:
+                    transport =  self._wrapper.server.iserver.asyncio_transports[-1]
                     client_addr = transport.get_extra_info('peername') or ('unknown', 0)
-                    for session_id, session_info in  self.wrapper.user_manager.connected_clients["sessions"].items():
+                    for session_id, session_info in  self._wrapper.user_manager.connected_clients["sessions"].items():
                         if session_info["client_addr"] == client_addr:
                             userrole = session_info["userrole"]
                             logging.debug(f"CustomSecurity._get_current_userrole: Found external client session, userrole={userrole}, client_addr={client_addr}")
                             return userrole
 
                 # 步骤 2：如果没有外部客户端连接，检查服务器内部会话
-                if hasattr( self.wrapper.server.iserver, 'isession') and  self.wrapper.server.iserver.isession:
-                    session_user =  self.wrapper.server.iserver.isession.user
+                if hasattr( self._wrapper.server.iserver, 'isession') and  self._wrapper.server.iserver.isession:
+                    session_user =  self._wrapper.server.iserver.isession.user
                     if session_user:
                         # 根据 UserRole 映射到你的自定义 userrole
                         role_map = {
@@ -237,12 +237,12 @@ class CustomSecurity:
                 返回值：[String] - JSON 格式的 connected_clients 数据
                 """
                 userrole = await self._get_current_userrole()
-                if not  self.wrapper.user_manager.check_method_permission(50, userrole):  # 限制为 OPERATE 或更高权限
+                if not  self._wrapper.user_manager.check_method_permission(50, userrole):  # 限制为 OPERATE 或更高权限
                     logging.warning(f"CustomSecurity_.get_connected_clients: Unauthorized attempt to query clients")
-                    await  self.wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
-                    await  self.wrapper.node.last_error_desc.write_value("Unauthorized attempt to query clients")
+                    await  self._wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+                    await  self._wrapper.node.last_error_desc.write_value("Unauthorized attempt to query clients")
                     raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
-                clients_json = await  self.wrapper.user_manager.query_connected_clients()
+                clients_json = await  self._wrapper.user_manager.query_connected_clients()
                 return [ua.Variant(clients_json, ua.VariantType.String)]
         async def disconnect_client(self, parent, session_id_variant) -> list:
             """
@@ -251,23 +251,23 @@ class CustomSecurity:
             返回值：[Boolean] - True 表示成功，False 表示失败
             """
             userrole = await self._get_current_userrole()
-            if not  self.wrapper.user_manager.check_method_permission(12, userrole):  # 限制为 Admin 权限 (userrole <= 0)
+            if not  self._wrapper.user_manager.check_method_permission(12, userrole):  # 限制为 Admin 权限 (userrole <= 0)
                 logging.warning(f"CustomSecurity.disconnect_client: Unauthorized attempt to disconnect client")
-                await  self.wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
-                await  self.wrapper.node.last_error_desc.write_value("Unauthorized attempt to disconnect client")
+                await  self._wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+                await  self._wrapper.node.last_error_desc.write_value("Unauthorized attempt to disconnect client")
                 raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
 
             session_id = session_id_variant.Value
             try:
-                success = await  self.wrapper.user_manager.disconnect_session(self.wrapper.server.iserver, session_id)
+                success = await  self._wrapper.user_manager.disconnect_session(self._wrapper.server.iserver, session_id)
                 if success:
                     logging.debug(f"CustomSecurity.disconnect_client: Successfully disconnected session {session_id}")
                     return [ua.Variant(True, ua.VariantType.Boolean)]
                 else:
                     logging.warning(f"CustomSecurity.disconnect_client: Failed to disconnect session {session_id}")
-                    await  self.wrapper.node.last_error_desc.write_value(f"Failed to disconnect session {session_id}")
+                    await  self._wrapper.node.last_error_desc.write_value(f"Failed to disconnect session {session_id}")
                     return [ua.Variant(False, ua.VariantType.Boolean)]
             except Exception as e:
                 logging.error(f"CustomSecurity.disconnect_client: Error disconnecting session {session_id}: {str(e)}")
-                await  self.wrapper.node.last_error_desc.write_value(f"Error disconnecting session {session_id}: {str(e)}")
+                await  self._wrapper.node.last_error_desc.write_value(f"Error disconnecting session {session_id}: {str(e)}")
                 return [ua.Variant(False, ua.VariantType.Boolean)]

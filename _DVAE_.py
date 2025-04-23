@@ -292,7 +292,7 @@ async def main():
 
        
     except Exception as e:
-        ptint(f"Error in main: {str(e)}")
+        print(f"Error in main: {str(e)}")
         raise
     finally:
         sql_client.disconnect()

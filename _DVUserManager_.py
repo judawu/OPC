@@ -20,8 +20,9 @@ class CustomUserManager:
         self.anonymous_sessions = {}  # (client_addr, start_time) pairs
         self.recently_closed = {}    # (client_addr, close_time)
         self.blacklist = {}    # (client_addr, close_time)
-        self.timeout = 60            # 会话超时时间（秒）
-        self.cooldown = 180           # 重连冷却时间（秒）
+        self._anonymous_timeout = 60            # 会话超时时间（秒）
+        self._cooldown_time = 180           # 重连冷却时间（秒）
+        self._monitor_period = 10
         self.user_roles = {
             "deltavadmin": 0,
             "EMERSON": 1,
@@ -68,7 +69,7 @@ class CustomUserManager:
         current_time = time.time()
         session_id = iserver.isession.session_id.to_string().split('=')[1]  # only get the value of session id
         if session_id in self.blacklist:
-             if current_time < self.blacklist[session_id]+ self.cooldown :
+             if current_time < self.blacklist[session_id]+ self._cooldown_time :
                     logging.warning(f"CustomUserManager: Rejecting client session {session_id} due to blacklist")
  
                     return None
@@ -137,10 +138,10 @@ class CustomUserManager:
         if userrole>99:    
             if client_ip in self.recently_closed:
                 time_since_closed = current_time - self.recently_closed[client_ip]
-                if time_since_closed < self.cooldown:
-                    logging.warning(f"CustomUserManager: Rejecting {client_addr} due to cooldown: {time_since_closed:.2f}s < {self.cooldown}s")
+                if time_since_closed < self._cooldown_time:
+                    logging.warning(f"CustomUserManager: Rejecting {client_addr} due to cooldown: {time_since_closed:.2f}s < {self._cooldown_time}s")
                     return None
-                self.recently_closed = {ip: t for ip, t in self.recently_closed.items() if current_time - t < self.cooldown}
+                self.recently_closed = {ip: t for ip, t in self.recently_closed.items() if current_time - t < self._cooldown_time}
             if client_addr not in self.anonymous_sessions:
                
                 self.anonymous_sessions[client_addr] = current_time
@@ -198,7 +199,7 @@ class CustomUserManager:
                             logging.debug(f"CustomUserManager: Checking anonymous sessions: {self.anonymous_sessions}")
                             expired_sessions = [
                                 addr for addr, start_time in self.anonymous_sessions.items()
-                                if current_time - start_time > self.timeout
+                                if current_time - start_time > self._anonymous_timeout
                             ]
                             for addr in expired_sessions:
                                 logging.debug(f"CustomUserManager: Found expired session {addr}, duration: {current_time - self.anonymous_sessions[addr]:.2f}s")
@@ -223,10 +224,10 @@ class CustomUserManager:
                                 else:
                                     session["last_active"] = current_time
 
-                        await asyncio.sleep(20)  # 每 10 秒检查一次
+                        await asyncio.sleep(self._monitor_period)  # 每 10 秒检查一次
                     except Exception as e:
                         logging.error(f"CustomUserManager: Error in monitor_anonymous_sessions: {str(e)}", exc_info=True)
-                        await asyncio.sleep(20)  # 出错后继续运行
+                        await asyncio.sleep( self._monitor_period)  # 出错后继续运行
     async def _close_session(self, iserver,client_addr):
           
                 if client_addr not in self.anonymous_sessions:

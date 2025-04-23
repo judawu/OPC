@@ -4,7 +4,7 @@ import pywintypes
 from win32com.client import Dispatch
 import logging
 from datetime import datetime, timedelta
-
+import os
 
 class _OPCHDA_:
     def __init__(self, server_name: str = "DeltaV.OPCHDAsvr", client_name: str = "DeltsVHDAClient"):
@@ -44,18 +44,18 @@ class _OPCHDA_:
             # 如果发生任何异常，返回 None
             return -2147352567
     def connect(self) -> int:
-        logging.debug(f"_OPCHDA_: Attempting to connect to {self.server_name}")
+        logging.debug(f"_OPCHDA_.connect: Attempting to connect to {self.server_name}")
         try:
             pythoncom.CoInitialize()
             self.opc_hda = win32com.client.Dispatch("OpcHda.Automation")
-            logging.debug(f"_OPCHDA_: Successfully created OpcHda.Automation instance")
+            logging.debug(f"_OPCHDA_.connect: Successfully created OpcHda.Automation instance")
 
             if hasattr(self.opc_hda, "Parent"):
                 self.hda_server = self.opc_hda.Parent
-                logging.debug(f"_OPCHDA_: Successfully accessed Parent")
+                logging.debug(f"_OPCHDA_.connect: Successfully accessed Parent")
           
                 self.hda_server.Connect(self.server_name)
-                logging.debug(f"_OPCHDA_.connect: Successfully Connected ({self.server_name})")
+             
                 self.status = self.GetHistorianStatus()
               
                 # logging.debug(f"_OPCHDA_: hda_server dir hda_server: {dir(self.hda_server)}")
@@ -63,16 +63,16 @@ class _OPCHDA_:
          
                 if  self.status:
                     self.connected = True
-                    logging.debug(f"_OPCHDA_: Successfully connected to {self.server_name}")
+                    logging.debug(f"_OPCHDA_.connect: Successfully connected to {self.server_name}")
                     return True
                 else:
-                    logging.warning(f"_OPCHDA_: Connected but failed to get meaningful status")
+                    logging.warning(f"_OPCHDA_.connect: Connected but failed to get meaningful status")
             else:
-                logging.warning("_OPCHDA_: Parent attribute not available")
+                logging.warning("_OPCHDA_.connect: Parent attribute not available")
 
             raise Exception("Failed to connect")
         except Exception as e:
-            logging.error(f"_OPCHDA_: Failed to connect to {self.server_name}: {str(e)}")
+            logging.error(f"_OPCHDA_.connect: Failed to connect to {self.server_name}: {str(e)}")
             return False
         finally:
             if self.connected:
@@ -83,9 +83,9 @@ class _OPCHDA_:
             try:
                 self.hda_server.Disconnect()
                 self.connected = False
-                logging.debug(f"_OPCHDA_: Successfully disconnected from {self.server_name}")
+                logging.debug(f"_OPCHDA_.disconnect: Successfully disconnected from {self.server_name}")
             except Exception as e:
-                logging.error(f"_OPCHDA_: Failed to disconnect from {self.server_name}: {str(e)}")
+                logging.error(f"_OPCHDA_.disconnect: Failed to disconnect from {self.server_name}: {str(e)}")
             finally:
                 if self.shutdown_handler:
                     del self.shutdown_handler
@@ -241,7 +241,7 @@ class _OPCHDA_:
 
     def AddItem(self, item_id: str):
             if not self.connected or not self.hda_server:
-                    logging.error("_OPCHDA_: Not connected to server")
+                    logging.error("_OPCHDA_.AddItem: Not connected to server")
                     return None
             try:                    
                   client_handle = 0  # Arbitrary client handle
@@ -421,7 +421,7 @@ class _OPCHDA_:
     def ValidateItemIDs(self, item_ids: list) -> dict:
         """验证指定的 Item IDs 是否有效 (使用 Validate 方法 - 临时方案)"""
         if not self.connected or not self.hda_server:
-            logging.error("_OPCHDA_: Not connected to server")
+            logging.error("_OPCHDA_.ValidateItemIDs: Not connected to server")
             return None
 
         validation = {}
@@ -436,34 +436,40 @@ class _OPCHDA_:
                            
             return validation
         except Exception as e:
-            logging.error(f"_OPCHDA_: Failed to validate item IDs: {str(e)}", exc_info=True)
+            logging.error(f"_OPCHDA_.ValidateItemIDs: Failed to validate item IDs: {str(e)}", exc_info=True)
             return None
     def AddItems(self, item_ids: list[str]) -> list[int]:
             if not self.connected or not self.hda_server:
-                    logging.error("_OPCHDA_: Not connected to server")
+                    logging.error("_OPCHDA_.AddItems: Not connected to server")
                     return None
             try:   
                 num_items = len(item_ids)
                 item_ids.append(item_ids[-1])  # 需要添加 item_ids[-1]   以避免错误,otherise num_items=num_items-1
-                client_handles = list(range(num_items+1))
-                            
-                items = self.hda_server.OPCHDAItems.AddItems(num_items, item_ids, client_handles)   # 这里的 items 是一个元组，包含了服务器句柄和其他信息              
+                client_handles = list(range(1,num_items+2))
+                logging.debug(f"_OPCHDA_: AddItems AddItems client_handles :{client_handles}  ")         
+                items = self.hda_server.OPCHDAItems.AddItems(num_items, item_ids, client_handles)   # 这里的 items 是一个元组，包含了服务器句柄和其他信息    
+                #logging.debug(f"_OPCHDA_: AddItems AddItems tuples is :{items}  ")               
                 server_handles = [handle for handle in items[0]] # items[0] is server_handles
+                #logging.debug(f"_OPCHDA_: AddItems AddItems server_handles :{server_handles}  ")    
                 server_handles.append(server_handles[-1])  # 需要添加 item_ids[-1]   以避免错误,otherise num_items=num_items-1  
+                logging.debug(f"_OPCHDA_: AddItems AddItems, this is a bug fix, append last server_handles :{server_handles}  ")    
                 return server_handles
             except Exception as e:
-                    logging.error(f"_OPCHDA_: Failed to AddItems {str(e)}, inner error is: {self.GetErrorString(self.extract_scode(e))}", exc_info=True)
+                    logging.error(f"_OPCHDA_.AddItems: Failed to AddItems {str(e)}, inner error is: {self.GetErrorString(self.extract_scode(e))}", exc_info=True)
                     return None
     def SyncReadRaw(self, item_ids: list[str], start_time: datetime, end_time: datetime, max_values: int = 0) -> dict:       
             try:       
-                num_items = len(item_ids)     
+                num_items=len(item_ids)
                 server_handles= self.AddItems(item_ids)
                 logging.debug(f"_OPCHDA_: SyncReadRaw AddItems server_handles :{server_handles}  ")
                 if server_handles is None:
                     logging.error("_OPCHDA_: Failed to add items")
-                    return None
+                    return {}
+                
+             
+                
                 results = self.hda_server.OPCHDAItems.SyncReadRaw(start_time,end_time, max_values, 2, num_items, server_handles)   # why not working for last server_handles   
-                logging.debug(f"_OPCHDA_: SyncReadRaw SyncReadRaw results :{results}   for {start_time} to {end_time} of {num_items} ")
+                #logging.debug(f"_OPCHDA_: SyncReadRaw SyncReadRaw results :{results}   for {start_time} to {end_time} of {num_items} ")
                 self.hda_server.OPCHDAItems.Remove(num_items,server_handles)
              
 
@@ -481,7 +487,7 @@ class _OPCHDA_:
 
                         try:
                             if history_object is None:
-                                logging.warning(f"_OPCHDA_: History object for {item_id} is None.")
+                                logging.warning(f"_OPCHDA_.SyncReadRaw: History object for {item_id} is None.")
                                 continue
                             if hasattr(history_object, 'Count'):            
                                 count = history_object.Count
@@ -495,37 +501,37 @@ class _OPCHDA_:
                                         timestamps.append(record.TimeStamp)
                                         
                                     except Exception as e:
-                                        logging.warning(f"_OPCHDA_: Error accessing record {j} for {item_id}: {e}")
+                                        logging.warning(f"_OPCHDA_.SyncReadRaw: Error accessing record {j} for {item_id}: {e}")
+                                        
                         
 
                             else:
-                                logging.warning(f"_OPCHDA_: History object for {item_id} does not have a 'Count' attribute.")
+                                logging.warning(f"_OPCHDA_.SyncReadRaw: History object for {item_id} does not have a 'Count' attribute.")
 
                         except Exception as e:
-                            logging.error(f"_OPCHDA_: Error accessing history data for {item_id}: {e}")
+                            logging.error(f"_OPCHDA_.SyncReadRaw: Error accessing history data for {item_id}: {e}")
 
                         data[item_id] = {
-                            "values": values,
-                           
+                            "values": values,                         
                             "qualities": qualities_list,
                             "timestamps": timestamps
                         }                                          
 
                 else:
-                        logging.warning("_OPCHDA_: Unexpected format of SyncReadRaw results.")
+                        logging.warning("_OPCHDA_.SyncReadRaw: Unexpected format of SyncReadRaw results.")
                         for item_id in item_ids:
                             data[item_id] = {"values": [], "qualities": [], "timestamps": []}   
                         
                 return data
             except Exception as e:
-                    logging.error(f"_OPCHDA_: Failed to read raw data: {str(e)}, inner error is: {self.GetErrorString(self.extract_scode(e))}", exc_info=True)
+                    logging.error(f"_OPCHDA_.SyncReadRaw: Failed to read raw data: {str(e)}, inner error is: {self.GetErrorString(self.extract_scode(e))}", exc_info=True)
                     return None
     def SyncReadProcessed(self, item_ids: list[str], start_time: datetime, end_time: datetime, Interval: int,Aggregates:list[int]) -> dict:       
             try:       
                 num_items = len(item_ids)     
                 server_handles= self.AddItems(item_ids)
                 if server_handles is None:
-                    logging.error("_OPCHDA_: Failed to add items")
+                    logging.error("_OPCHDA_.SyncReadProcessed: Failed to add items")
                     return None
                 basetime=pywintypes.Time(86400)
            
@@ -549,28 +555,28 @@ class _OPCHDA_:
                         timestamps = []
                         try:
                             if history_object is None:
-                                logging.debug(f"_OPCHDA_: History object for {item_id} is None.")
+                                logging.debug(f"_OPCHDA_.SyncReadProcessed: History object for {item_id} is None.")
                                 continue
                             if hasattr(history_object, 'Count'):            
                                 count = history_object.Count
-                                logging.debug(f"_OPCHDA_: Number of historical values for {item_id}: {count}")
+                                logging.debug(f"_OPCHDA_.SyncReadProcessed: Number of historical values for {item_id}: {count}")
                                 for j in range(count):
                                     try:
                                         record = history_object.Item(j+1)                                  
-                                        logging.debug(f"_OPCHDA_: get Record {j+1} at  ({record.DataValue},{record.Quality},{record.TimeStamp})")
+                                        logging.debug(f"_OPCHDA_.SyncReadProcessed: get Record {j+1} at  ({record.DataValue},{record.Quality},{record.TimeStamp})")
                                         values.append(record.DataValue)
                                         qualities_list.append(record.Quality)
                                         timestamps.append(record.TimeStamp)
                                         
                                     except Exception as e:
-                                        logging.warning(f"_OPCHDA_: Error accessing record {j} for {item_id}: {e}")
+                                        logging.warning(f"_OPCHDA_.SyncReadProcessed: Error accessing record {j} for {item_id}: {e}")
                         
 
                             else:
-                                logging.warning(f"_OPCHDA_: History object for {item_id} does not have a 'Count' attribute.")
+                                logging.warning(f"_OPCHDA_.SyncReadProcessed: History object for {item_id} does not have a 'Count' attribute.")
 
                         except Exception as e:
-                            logging.error(f"_OPCHDA_: Error accessing history data for {item_id}: {e}")
+                            logging.error(f"_OPCHDA_.SyncReadProcessed: Error accessing history data for {item_id}: {e}")
 
                         data[item_id] = {
                             "values": values,
@@ -580,13 +586,13 @@ class _OPCHDA_:
                         }                                          
 
                 else:
-                        logging.warning("_OPCHDA_: Unexpected format of SyncReadRaw results.")
+                        logging.warning("_OPCHDA_.SyncReadProcessed: Unexpected format of SyncReadRaw results.")
                         for item_id in item_ids:
                             data[item_id] = {"values": [], "qualities": [], "timestamps": []}   
                         
                 return data
             except Exception as e:
-                    logging.error(f"_OPCHDA_: Failed to read raw data: {str(e)}, inner error is: {self.GetErrorString(self.extract_scode(e))}", exc_info=True)
+                    logging.error(f"_OPCHDA_.SyncReadProcessed: Failed to read raw data: {str(e)}, inner error is: {self.GetErrorString(self.extract_scode(e))}", exc_info=True)
                     return None
 
     
@@ -624,7 +630,8 @@ def main():
           
             print(f"Test SyncReadAttribute for {item_ids[20]} item_attribute_data is: {item_attribute_data}" )
             print()
-
+            #item_ids =  ["V1-IO/DO1_NA_PV.CV","V1-IO/PH1_MV_PV.CV"]
+            # print()
             item_data = opc_hda.ReadRaw(item_ids[1], start_time, end_time, 100)
           
             print(f"Test ReadRaw for {item_ids[1]}  is: {item_data}" )
@@ -658,8 +665,8 @@ def main():
          
             end_time = datetime.strptime(end_time_str, "%Y-%m-%d %H:%M:%S")
            
-    
-            raw_data = opc_hda.SyncReadRaw(item_ids[:3], start_time, end_time, 200)
+            new_item_ids=["V1-IO/DO1_NA_PV.CV", "V1-IO/DO1_TMP_PV.CV","V1-IO/PH1_MV_PV.CV"]
+            raw_data = opc_hda.SyncReadRaw(new_item_ids, start_time, end_time, 200)
         
             print(f"OPCHDA SyncReadRaw Test for {item_ids[:3]} is : {raw_data}")
             print()
@@ -686,5 +693,9 @@ def main():
         print("disconnected from OPCHDA server")
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(
+        filename=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'opchdaserver.log'),
+        level=logging.DEBUG,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
     main()

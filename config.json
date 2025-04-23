@@ -1,0 +1,17 @@
+{
+    "da_manager": {
+        "_da_update_rate": 500,
+        "_ua_update_rate": 5,
+        "_da_subscribe_waittime": 2,
+        "_max_level": 2
+    },
+    "history_manager": {
+        "_event_update_rate": 10,
+        "_retention_period": {"days": 1}
+    },
+    "user_manager": {
+        "_anonymous_timeout" : 60 ,         
+        "_cooldown_time" : 180,       
+        "_monitor_period" : 10
+    }
+}
