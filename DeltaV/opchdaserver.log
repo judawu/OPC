@@ -1,0 +1,33 @@
+2025-04-23 21:43:25,547 - DEBUG - _OPCHDA_.connect: Attempting to connect to DeltaV.OPCHDAsvr
+2025-04-23 21:43:25,558 - DEBUG - _OPCHDA_.connect: Successfully created OpcHda.Automation instance
+2025-04-23 21:43:25,558 - DEBUG - _OPCHDA_.connect: Successfully accessed Parent
+2025-04-23 21:43:25,667 - INFO - _OPCHDA_.connect: Successfully connected to DeltaV.OPCHDAsvr
+2025-04-23 21:43:25,677 - ERROR - Error in main: module '_DVUACommon_' has no attribute '_format_json_'
+2025-04-23 21:43:25,679 - INFO - _OPCHDA_.disconnect: Successfully disconnected from DeltaV.OPCHDAsvr
+2025-04-23 22:03:48,232 - DEBUG - _OPCHDA_.connect: Attempting to connect to DeltaV.OPCHDAsvr
+2025-04-23 22:03:48,248 - DEBUG - _OPCHDA_.connect: Successfully created OpcHda.Automation instance
+2025-04-23 22:03:48,248 - DEBUG - _OPCHDA_.connect: Successfully accessed Parent
+2025-04-23 22:03:48,380 - INFO - _OPCHDA_.connect: Successfully connected to DeltaV.OPCHDAsvr
+2025-04-23 22:03:48,425 - DEBUG - _OPCHDA_.CreateBrowse: Successfully browsed 249 items at current level
+2025-04-23 22:03:48,663 - DEBUG - _OPCHDA_SyncReadAttribute: AttributesIDs -2147483646 for V3-IO/DO1_TMP_PV.CV is None.
+2025-04-23 22:03:48,663 - DEBUG - _OPCHDA_SyncReadAttribute: AttributesIDs -2147483645 for V3-IO/DO1_TMP_PV.CV is None.
+2025-04-23 22:03:48,664 - DEBUG - _OPCHDA_SyncReadAttribute: AttributesIDs -2147483613 for V3-IO/DO1_TMP_PV.CV is None.
+2025-04-23 22:03:48,664 - DEBUG - _OPCHDA_SyncReadAttribute: AttributesIDs -2147483598 for V3-IO/DO1_TMP_PV.CV is None.
+2025-04-23 22:03:48,737 - DEBUG - _OPCHDA_ReadProcessed:ReadProcessed count is 1
+2025-04-23 22:03:48,745 - WARNING - Aggregate 1 returned 1 values
+2025-04-23 22:03:48,759 - DEBUG - _OPCHDA_ReadProcessed:ReadProcessed count is 1
+2025-04-23 22:03:48,763 - WARNING - Aggregate 3 returned 1 values
+2025-04-23 22:03:48,781 - DEBUG - _OPCHDA_ReadProcessed:ReadProcessed count is 1
+2025-04-23 22:03:48,787 - WARNING - Aggregate 5 returned 1 values
+2025-04-23 22:03:48,821 - DEBUG - _OPCHDA_: AddItems AddItems client_handles :[1, 2, 3, 4]  
+2025-04-23 22:03:48,830 - DEBUG - _OPCHDA_: AddItems AddItems, this is a bug fix, append last server_handles :[1030488070, 752222215, 1924005896, 1924005896]  
+2025-04-23 22:03:48,831 - DEBUG - _OPCHDA_: SyncReadRaw AddItems server_handles :[1030488070, 752222215, 1924005896, 1924005896]  
+2025-04-23 22:03:48,872 - DEBUG - _OPCHDA_: AddItems AddItems client_handles :[1, 2, 3, 4]  
+2025-04-23 22:03:48,879 - DEBUG - _OPCHDA_: AddItems AddItems, this is a bug fix, append last server_handles :[1766981641, 1603272714, 373882891, 373882891]  
+2025-04-23 22:03:48,907 - DEBUG - _OPCHDA_.SyncReadProcessed: Number of historical values for V1-IO/DO1_NA_PV.CV: 1
+2025-04-23 22:03:48,908 - DEBUG - _OPCHDA_.SyncReadProcessed: get Record 1 at  (-18.968229293823242,131264,2025-04-13 17:39:51+00:00)
+2025-04-23 22:03:48,908 - DEBUG - _OPCHDA_.SyncReadProcessed: Number of historical values for V1-IO/DO1_TMP_PV.CV: 1
+2025-04-23 22:03:48,909 - DEBUG - _OPCHDA_.SyncReadProcessed: get Record 1 at  (-18.968229293823242,131264,2025-04-13 17:39:51+00:00)
+2025-04-23 22:03:48,909 - DEBUG - _OPCHDA_.SyncReadProcessed: Number of historical values for V1-IO/PH1_MV_PV.CV: 1
+2025-04-23 22:03:48,910 - DEBUG - _OPCHDA_.SyncReadProcessed: get Record 1 at  (-18.968229293823242,131264,2025-04-13 17:39:51+00:00)
+2025-04-23 22:03:48,921 - INFO - _OPCHDA_.disconnect: Successfully disconnected from DeltaV.OPCHDAsvr
