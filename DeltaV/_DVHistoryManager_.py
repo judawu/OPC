@@ -1,9 +1,17 @@
-
-class _DVistoryManager_:
+import datetime
+import json
+import asyncio
+import logging
+from typing import Dict, Optional
+from asyncua import ua
+from collections import deque  # Added import
+from _DVHDA_ import _OPCHDA_
+from _DVAE_ import EventChronicleClient
+class _OPChistoryManager_:
     def __init__(self,wrapper,server_name: str = "DeltaV.OPCHDAsvr"):
         self._events = {}  # node_id -> deque of (timestamp, event_data)
         self._event_update_rate:int=5
-        self.period_event_filters = {
+        self._period_event_filters = {
                                  "Category": ["PROCESS","USER"],
                                 # "Event_Type":["ALARM","EVENT","CHANGE"],
                                 # "Attribute": ["LO_ALM","LO_LO_ALM","HI_ALM","HI_HI_ALM","PVBAD_ALM"]
@@ -24,6 +32,8 @@ class _DVistoryManager_:
         logging.debug("CustomHistoryManager: set _prune_old_events and executor_opchda task")
         asyncio.create_task(self._prune_old_events())
         self.opchda_executor = self._wrapper.executor_opchda
+
+    
 
     async def setup_event_type(self):
             """初始化自定义事件类型 DeltaVEventType"""
@@ -1041,7 +1051,7 @@ class _DVistoryManager_:
               
     async def periodic_event_update(self,server_name="localhost"):
                 #sql_client = EventChronicleClient(server="10.4.0.6,55114", instance="DELTAV_CHRONICLE")
-                filters=self.period_event_filters
+                filters=self._period_event_filters
                 sql_client = EventChronicleClient(server=server_name, instance="DELTAV_CHRONICLE")
                 # 用于存储上一次检查时的事件状态
                

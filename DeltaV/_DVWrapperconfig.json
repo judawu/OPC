@@ -1,17 +1,26 @@
-{
+ {
+    "_max_time": 10.0,
+    "_manual_stop": true,
     "da_manager": {
-        "_da_update_rate": 500,
-        "_ua_update_rate": 5,
-        "_da_subscribe_waittime": 2,
-        "_max_level": 2
+        "_da_update_rate": 2000,
+        "_ua_update_rate": 20,
+        "_da_subscribe_waittime": 2
+   
     },
     "history_manager": {
-        "_event_update_rate": 10,
-        "_retention_period": {"days": 1}
+        "_event_update_rate": 5,
+        "_retention_period": {"seconds": 3600} , 
+        "_period_event_filters" : {
+                         "Category": ["PROCESS"],
+                   
+                         "Area":["AREA_V1","AREA_V2","AREA_A"]
+                                                              
+                    }
     },
-    "user_manager": {
+       "user_manager": {
         "_anonymous_timeout" : 60 ,         
-        "_cooldown_time" : 180,       
+        "_cooldown_time" : 120,       
         "_monitor_period" : 10
-    }
+          }
+
 }

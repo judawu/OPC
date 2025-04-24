@@ -9,12 +9,12 @@ from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
-from asyncua.server.users import User, UserRole  # Correct import for v1.1.5
+from asyncua.server.users import  UserRole  # Correct import for v1.1.5
 import socket
 import datetime
 import logging
 from asyncua import ua
-class CustomSecurity:
+class _OPCUASecurity_:
         def __init__(self,wrapper):
             self._wrapper = wrapper
             self._base_dir = os.path.dirname(os.path.abspath(__file__))

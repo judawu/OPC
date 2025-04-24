@@ -4,7 +4,7 @@ import pywintypes
 
 import logging
 import datetime
-from typing import Dict, Optional, Tuple,List,Callable
+from typing import List
 import os
 import _DVUACommon_ as common
 class _OPCHDA_:
@@ -586,7 +586,7 @@ def main():
         if opc_hda.connect():
             print(f"Connected to OPCHDA {opc_hda.server_name}")
             print()
-            print("Get OPCHDA  Historian Status:\n", common._format_json_(opc_hda.status))
+            print("Get OPCHDA  Historian Status:\n", common.pretify_json(opc_hda.status))
             print()
             items = opc_hda.CreateBrowse()
             print(f"OPCHDA {opc_hda.server_name} Browsed {len(items)} Items:,first 2 is {items[:2]}" )
@@ -596,9 +596,9 @@ def main():
             attributes = opc_hda.GetItemAttributes()
             print("Get OPCHDA Item Attributes:", attributes)
             print()
-            print("Get OPCHDA Item Attributes format json\n", common._format_json_(attributes))
+            print("Get OPCHDA Item Attributes pretify_datan\n", common.pretify_data(attributes))
             print()
-            print("Get OPCHDA Item Attributes: format data\n ", common._format_data_(attributes))
+            print("Get OPCHDA Item Attributes: pretify_json\n ", common.pretify_json(attributes))
             print()
             Aggregates  = opc_hda.GetAggregates()
             print("OPCHDA support Aggregates :", Aggregates)
@@ -609,9 +609,9 @@ def main():
           
             print(f"Test SyncReadAttribute for {item_ids[20]} item_attribute_data is: {item_attribute_data}" )
             print()
-            print("item_attribute_data is: format json\n", common._format_json_(item_attribute_data))
+            print("item_attribute_data in format json\n", common.pretify_json(item_attribute_data))
             print()
-            print("item_attribute_data is: format data\n ", common._format_data_(item_attribute_data))
+            print("item_attribute_data in format data\n ", common.pretify_data(item_attribute_data))
             print()
             print()
             #item_ids =  ["V1-IO/DO1_NA_PV.CV","V1-IO/PH1_MV_PV.CV"]
@@ -621,9 +621,9 @@ def main():
             print(f"Test ReadRaw for {item_ids[1]}  is: {item_data}" )
 
             print()
-            print("ReadRaw is: format json\n", common._format_json_(item_data))
+            print("ReadRaw is in format json\n", common.pretify_json(item_data))
             print()
-            print("ReadRaw is: format data \n", common._format_data_(item_data))
+            print("ReadRaw is in format data \n", common.pretify_data(item_data))
             print()
             print()
             
@@ -635,8 +635,8 @@ def main():
                 for agg in aggregates:
                     item_data = opc_hda.ReadProcessed(item_id, start_time, end_time, Interval=interval, Aggregate=agg)
                     print(f"Aggregate {agg} Result for {item_id}\n: {item_data}\n")
-                    print(f"{common._format_json_(item_data)} \n")
-                    print(f"{common._format_data_(item_data)} \n")
+                    print(f"{common.pretify_json(item_data)} \n")
+                    print(f"{common.pretify_data(item_data)} \n")
                     if item_data and item_id in item_data:
                         count = len(item_data[item_id]["values"])
                         logging.warning(f"Aggregate {agg} returned {count} values")
@@ -649,8 +649,8 @@ def main():
            
             validation_results = opc_hda.ValidateItemIDs(item_ids[:3])
             print(f"OPCHDA Validation Results: for {item_ids[:3]} \n {validation_results} \n")
-            print(f"{common._format_json_(validation_results)} \n")
-            print(f"{common._format_data_(validation_results)} \n")
+            print(f"{common.pretify_json(validation_results)} \n")
+            print(f"{common.pretify_data(validation_results)} \n")
             print()
    
             start_time_str="2025-04-14 01:39:51"   
@@ -663,8 +663,8 @@ def main():
             raw_data = opc_hda.SyncReadRaw(new_item_ids, start_time, end_time, 10)
         
             print(f"OPCHDA SyncReadRaw Test for {item_ids[:3]} is \n: {raw_data}\n")
-            print(f"{common._format_json_(raw_data)} \n")
-            print(f"{common._format_data_(raw_data)} \n")
+            print(f"{common.pretify_json(raw_data)} \n")
+            print(f"{common.pretify_data(raw_data)} \n")
             print()
 
 
@@ -674,8 +674,8 @@ def main():
             raw_data = opc_hda.SyncReadProcessed(test_process_ids, start_time, end_time, Interval=60,Aggregates=Aggregates)
         
             print(f"OPCHDA SyncReadProcessed for {item_ids[:3]} is : {raw_data}")
-            print(f"{common._format_json_(raw_data)} \n")
-            print(f"{common._format_data_(raw_data)} \n")
+            print(f"{common.pretify_json(raw_data)} \n")
+            print(f"{common.pretify_data(raw_data)} \n")
             print()
 
 

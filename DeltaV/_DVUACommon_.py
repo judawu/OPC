@@ -8,7 +8,7 @@ import ctypes  # 添加 ctypes 用于强制类型转换
 import logging
 import pickle
 
-def _format_data_(data: Dict[str, any]) -> Dict:
+def pretify_data(data: Dict[str, any]) -> Dict:
     """将服务器状态格式化为字典，处理特定类型的数据"""
     formatted_data = {}
     for key, value in data.items():
@@ -40,20 +40,20 @@ def _format_data_(data: Dict[str, any]) -> Dict:
                 elif isinstance(item, bytes):
                     new_value.append(item.decode('utf-8'))
                 elif isinstance(item, dict):  # 使用小写 dict
-                    new_value.append(_format_data_(item))
+                    new_value.append(pretify_data(item))
                 else:
                     new_value.append(item)
             formatted_data[key] = new_value
         elif isinstance(value, dict):
-            formatted_data[key] = _format_data_(value)
+            formatted_data[key] = pretify_data(value)
         else:
             formatted_data[key] = value
     return formatted_data
 
-def _format_json_(data: Dict[str, any]) -> str:
+def pretify_json(data: Dict[str, any],ensure_ascii:Optional[bool]=False) -> str:
     """将服务器状态格式化为 JSON 字符串"""
-    formatted_data = _format_data_(data)
-    return json.dumps(formatted_data, indent=6, ensure_ascii=False)
+    formatted_data = pretify_data(data)
+    return json.dumps(formatted_data, indent=6, ensure_ascii=ensure_ascii)
 
 def extract_scode(error_obj):
     """

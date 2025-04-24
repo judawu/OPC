@@ -266,16 +266,16 @@ async def main():
     sql_client = EventChronicleClient(server="10.8.0.6,55114", instance="DELTAV_CHRONICLE")
     try:
         sql_client.connect()
-        # filters = {
-        #                         "Category": "PROCESS",
-        #                         "Area": "AREA_V1",
-        #                         "Event_Type": "ALARM",
-        #                         "Attribute": ["LO_ALM","LO_LO_ALM","HI_ALM","HI_HI_ALM","PVBAD_ALM"]
+        filters = {
+                                "Category": "PROCESS",
+                                "Area": "AREA_V1",
+                                "Event_Type": "ALARM",
+                                "Attribute": ["LO_ALM","LO_LO_ALM","HI_ALM","HI_HI_ALM","PVBAD_ALM"]
                                                                       
-        #                     }
-        # events = sql_client.fetch_events(seconds_back=5,filters=filters)
-        # for event in events:
-        #     print(event)
+                            }
+        events = sql_client.fetch_events(seconds_back=5,filters=filters)
+        for event in events:
+            print(event)
 
 
         filters = {

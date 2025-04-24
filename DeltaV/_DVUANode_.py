@@ -1,4 +1,7 @@
-class _DVUANode_:
+from typing import Dict
+import logging
+from asyncua import ua
+class _OPCUANode_:
         def __init__(self,name:str= 'OPCUA Server', nodename:str ='localhost',endpoint: str = 'opc.tcp://0.0.0.0:4840',application_uri:str='OPC.DELTAV.1'):
             self.endpoint = endpoint   
             self.name = name
@@ -8,6 +11,9 @@ class _DVUANode_:
             self.da_folder = None
             self.cert_node = None
             self.nodes = {}  # Dict[str, ua.Node]
+            self.parameters_folder=None
+            self.methods_nodes={}
+            self.parameters_nodes = {}  # Dict[str, ua.Node]
             self.folders = {}  # 新增: 用于存储文件夹节点
           
             self.events_node = None           
@@ -19,16 +25,7 @@ class _DVUANode_:
 
             self.last_error_code = None  # 用于存储错误状态的节点
             self.last_error_desc = None  # 用于存储错误状态的节点
-        async def __get_server_info__(self):
-             server_details = {
-                "ServerName":  self.name,
-                "NodeName":  self.nodname,
-                "application_uri": self.application_uri,
-                "idx": self.idx,
-                "endpoint": self.endpoint,
-                "version": '1.0.16',
-                "VendorInfo": 'Juda.monster'
-            }
+      
     
         async def _get_node_path(self, node) -> str:
             """Helper to get the full path of a node based on self.node.folders."""
@@ -53,7 +50,7 @@ class _DVUANode_:
                 structure = {}
                 items_list = []  # To collect variables at this level
                 children = await node.get_children()
-                logging.debug(f"_build_node_structure: Node={await node.read_browse_name()}, Children={[await child.read_browse_name() for child in children]}")
+                logging.debug(f"_OPCUANode_._build_node_structure: Node={await node.read_browse_name()}, Children={[await child.read_browse_name() for child in children]}")
 
                 # Get the current node's path for comparison
                 current_node_path = await self._get_node_path(node)
@@ -96,5 +93,5 @@ class _DVUANode_:
                 if items_list:
                     structure["ITEMS"] = items_list
 
-                logging.debug(f"_build_node_structure: Built structure={structure}")
+                logging.debug(f"_OPCUANode_._build_node_structure: Built structure={structure}")
                 return structure

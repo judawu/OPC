@@ -1,5 +1,14 @@
-
-class _DVDAManager_:
+import asyncio
+import logging
+import pythoncom
+import datetime
+import time
+import json
+from queue import Queue, Empty
+from asyncua import ua
+from typing import List, Dict, Tuple, Optional
+from _DVDA_ import _OPCDA_, OPCDADataCallback
+class _OPCDAManager_:
         def __init__(self,wrapper,nodename="PROPLUS"):
             self.nodename=nodename
             self.group_name :str = "OPCDAGroup"     
@@ -256,7 +265,8 @@ class _DVDAManager_:
                     # value 是 OPC DA item 路径，记录但不立即更新
                     logging.debug(f"CustomDAManager.create_structure: Found item path {value}, awaiting client call to update")
                     # 添加方法到 folder，客户端可调用
-                    method_name = f"UpdateItem_{key}"
+                   
+                    method_name = f"UpdateItem_{value}"
                     # 检查当前节点下是否已存在同名方法
                     method_exists = False
                     try:
@@ -437,7 +447,7 @@ class _DVDAManager_:
                      # Add EnableHistorizing method
                             async def enable_historizing_wrapper(parent, item=item):
                                 logging.debug(f"CustomDAManager.enable_historizing: Client called EnableHistorizing for {item}")
-                                return awaitself._wrapper.history_manager.enable_historizing(parent, item)
+                                return await self._wrapper.history_manager.enable_historizing(parent, item)
                             await node.add_method(
                                self._wrapper.node.idx,
                                 f"EnableHistorizing_{item.replace('/', '_')}",
@@ -448,7 +458,7 @@ class _DVDAManager_:
                             # Add ReadHistory method
                             async def read_history_wrapper(parent, item=item):
                                 logging.debug(f"CustomDAManager.read_history: Client called ReadOnehourHistory for {item} with params ")
-                                return awaitself._wrapper.history_manager.read_item_history(parent, item)
+                                return await self._wrapper.history_manager.read_item_history(parent, item)
                             await node.add_method(
                                self._wrapper.node.idx,
                                 f"ReadOneHourHistory_{item.replace('/', '_')}",
@@ -492,49 +502,65 @@ class _DVDAManager_:
                 """Update OPC UA nodes with values from OPC DA items"""
                 
                 while not self._wrapper.event.shutdown.is_set():
-                   # logging.debug(f"CustomDAManage.update_ua_nodes: cycle update ua nodes ")    
-                    for item in self.items:
-                        
-                        data = self.callback.get_data(item)              
-                        if data and data[1] != 0:  # 检查数据有效性
-                            value, quality, timestamp = data
-                            status = ua.StatusCode(ua.StatusCodes.Good) if quality > 127 else ua.StatusCode(ua.StatusCodes.Bad)                   
-                            # 处理时间戳
-                            if isinstance(timestamp, str):
-                                try:
-                                    source_timestamp = datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
-                                except ValueError as e:
-                                    logging.warning(f"CustomDAManage.update_ua_nodes: Invalid timestamp format for {item}: {timestamp}, using current time. Error: {e}")
-                                    source_timestamp = datetime.datetime.now(datetime.UTC)
-                            elif isinstance(timestamp, datetime.datetime):
-                                source_timestamp = timestamp
-                            else:
-                                logging.warning(f"CustomDAManage.update_ua_nodes: Unsupported timestamp type for {item}: {type(timestamp)}, using current time")
-                                source_timestamp = datetime.datetime.now(datetime.UTC)
-                    
-                        # 更新节点值
-                        node =self._wrapper.node.nodes[item]
-                        node_type = await node.read_data_type()             
-                        if node_type == ua.NodeId(11, 0):  # Double
-                            variant_value = float(value)
-                        elif node_type == ua.NodeId(12, 0):  # String
-                            variant_value = str(value)
-                        elif node_type == ua.NodeId(6, 0):  # Int32
-                            variant_value = int(value)
-                        elif node_type == ua.NodeId(1, 0):  # Boolean
-                            variant_value = bool(value)
-                        else:
-                            logging.warning(f"CustomDAManage.update_ua_nodes: Unsupported node type for {item}")
-                            continue
-                        
+                    try:
                         try:
-                            variant = ua.Variant(variant_value, await node.read_data_type_as_variant_type())
-                            await node.write_value(ua.DataValue(variant, status, source_timestamp))
-                            logging.debug(f"CustomDAManage.update_ua_nodes: update node  for {item} to {value} ")           
-                        except ua.UaStatusCodeError as e:
-                            logging.error(f"CustomDAManage.update_ua_nodes: Failed to write {item}: {str(e)}")
-                            await  self._wrapper.node.last_error_desc.write_value(f"CustomDAManage.update_ua_nodes: Failed to write {item}, Error Occured: {str(e)}") 
-                    await asyncio.sleep(self._ua_update_rate)  
+                            await self._wrapper.node.parameters_nodes['PARA1'].write_value(ua.Variant(float(self._wrapper.max_time), ua.VariantType.Double))   
+                            await self._wrapper.node.parameters_nodes['PARA2'].write_value(ua.Variant(bool(self._wrapper.manual_stop), ua.VariantType.Boolean))
+                            await self._wrapper.node.parameters_nodes['PARA3'].write_value(ua.Variant(int(self._da_update_rate), ua.VariantType.Int64))
+                            await self._wrapper.node.parameters_nodes['PARA4'].write_value(ua.Variant(int(self._ua_update_rate), ua.VariantType.Int64))
+                            await self._wrapper.node.parameters_nodes['PARA5'].write_value(ua.Variant(int(self._wrapper.history_manager._event_update_rate), ua.VariantType.Int64))
+                            await self._wrapper.node.parameters_nodes['PARA6'].write_value(ua.Variant(int(self._wrapper.user_manager._anonymous_timeout), ua.VariantType.Int64))
+                            await self._wrapper.node.parameters_nodes['PARA7'].write_value(ua.Variant(int(self._wrapper.user_manager._cooldown_time), ua.VariantType.Int64))
+                            await self._wrapper.node.parameters_nodes['PARA8'].write_value(ua.Variant(int(self._wrapper.user_manager._monitor_period), ua.VariantType.Int64))
+                            logging.debug(f"CustomDAManage.update_ua_nodes: cycle update ua nodes ,the  cycle time is {self._ua_update_rate} s") 
+                        except Exception as e:
+                            logging.error(f"CustomDAManage.update_ua_nodes: Failed to write to paramters : {str(e)}")
+                            continue
+                        for item in self.items:
+                            if item in self._wrapper.node.nodes:
+                                data = self.callback.get_data(item)              
+                                if data and data[1] != 0:  # 检查数据有效性
+                                    value, quality, timestamp = data
+                                    status = ua.StatusCode(ua.StatusCodes.Good) if quality > 127 else ua.StatusCode(ua.StatusCodes.Bad)                   
+                                    # 处理时间戳
+                                    if isinstance(timestamp, str):
+                                        try:
+                                            source_timestamp = datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+                                        except ValueError as e:
+                                            logging.warning(f"CustomDAManage.update_ua_nodes: Invalid timestamp format for {item}: {timestamp}, using current time. Error: {e}")
+                                            source_timestamp = datetime.datetime.now(datetime.UTC)
+                                    elif isinstance(timestamp, datetime.datetime):
+                                        source_timestamp = timestamp
+                                    else:
+                                        logging.warning(f"CustomDAManage.update_ua_nodes: Unsupported timestamp type for {item}: {type(timestamp)}, using current time")
+                                        source_timestamp = datetime.datetime.now(datetime.UTC)
+                            
+                                # 更新节点值
+                                node =self._wrapper.node.nodes[item]
+                                node_type = await node.read_data_type()             
+                                if node_type == ua.NodeId(11, 0):  # Double
+                                    variant_value = float(value)
+                                elif node_type == ua.NodeId(12, 0):  # String
+                                    variant_value = str(value)
+                                elif node_type == ua.NodeId(6, 0):  # Int32
+                                    variant_value = int(value)
+                                elif node_type == ua.NodeId(1, 0):  # Boolean
+                                    variant_value = bool(value)
+                                else:
+                                    logging.warning(f"CustomDAManage.update_ua_nodes: Unsupported node type for {item}")
+                                    continue
+                                
+                                try:
+                                    variant = ua.Variant(variant_value, await node.read_data_type_as_variant_type())
+                                    await node.write_value(ua.DataValue(variant, status, source_timestamp))
+                                    logging.debug(f"CustomDAManage.update_ua_nodes: update node  for {item} to {value} ")           
+                                except ua.UaStatusCodeError as e:
+                                    logging.error(f"CustomDAManage.update_ua_nodes: Failed to write {item}: {str(e)}")
+                                    await  self._wrapper.node.last_error_desc.write_value(f"CustomDAManage.update_ua_nodes: Failed to write {item}, Error Occured: {str(e)}") 
+                        await asyncio.sleep(self._ua_update_rate)  
+                    except Exception as e:
+                         logging.error(f"CustomDAManage.update_ua_nodes: Failed with errof : {str(e)}")
+                         await asyncio.sleep(self._ua_update_rate)  
 
         async def update_item(self, parent, path_variant,level_variant):
                     """OPC UA 方法：对指定 item path 执行 add 操作"""

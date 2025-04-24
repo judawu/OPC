@@ -6,7 +6,7 @@ from asyncua.server.users import User, UserRole  # Correct import for v1.1.5
 import asyncio
 import json
 import socket
-class CustomUserManager:
+class _OPCUAUserManager_:
 
     
     def __init__(self):
@@ -16,14 +16,14 @@ class CustomUserManager:
             "sessions": {}
         }
 
-        self.version='1.0.0'
+     
         self.anonymous_sessions = {}  # (client_addr, start_time) pairs
         self.recently_closed = {}    # (client_addr, close_time)
         self.blacklist = {}    # (client_addr, close_time)
         self._anonymous_timeout = 60            # 会话超时时间（秒）
         self._cooldown_time = 180           # 重连冷却时间（秒）
         self._monitor_period = 10
-        self.user_roles = {
+        self._user_roles = {
             "deltavadmin": 0,
             "EMERSON": 1,
             "FINESSE": 1,
@@ -36,7 +36,7 @@ class CustomUserManager:
             "default": 18,
           
         }
-        self.user_passwords = {
+        self._user_passwords = {
             "deltavadmin": "Fin3ss3!",
             "EMERSON": "DeltaVE1",
             "FINESSE": "TruBioDV01",
@@ -97,13 +97,13 @@ class CustomUserManager:
             nonce = ""
             if  ":" in password:
                 client_password, nonce = password.split(":")
-                server_password = self._hash_password(username, self.user_passwords.get(username, "anonymous"), nonce)
+                server_password = self._hash_password(username, self._user_passwords.get(username, "anonymous"), nonce)
             else:
                 server_password = 'canyouguess?'
         # 获取会话详细信息
        
-        userrole =  self.user_roles.get(username, 100)  # 默认匿名用户
-        if username in self.user_passwords and password:
+        userrole =  self._user_roles.get(username, 100)  # 默认匿名用户
+        if username in self._user_passwords and password:
             
             logging.debug(f"CustomUserManager: User name {username}  exist in the user list,check userrole:")
             if certificate is not None and client_password == server_password:
@@ -111,7 +111,7 @@ class CustomUserManager:
                 userrole = min(userrole, 9)  # 有证书时最低为 9
                 logging.debug(f"CustomUserManager: User name {username}  have a valid cerficate,and password match  and  the pasword is encrypted,get userrole {userrole} ")
           
-            elif client_password != self.user_passwords[username] and client_password != server_password and certificate is None:
+            elif client_password != self._user_passwords[username] and client_password != server_password and certificate is None:
                 userrole = 100 # 密码不匹配，设为匿名用户
                 logging.debug(f"CustomUserManager: User name {username} is in user list without a valid certficate, but password didn't match , get userrole {userrole}")
              
@@ -119,7 +119,7 @@ class CustomUserManager:
     
                     userrole =  userrole + 20
                     logging.debug(f"CustomUserManager: User name {username} and password match and the pasword is encrypted,but don't have a valid cerficate,get userrole {userrole} ")
-            elif certificate is not None and client_password== self.user_passwords[username]:
+            elif certificate is not None and client_password== self._user_passwords[username]:
                     userrole =  userrole + 10
                     logging.debug(f"CustomUserManager: User name {username} match password without encrypted , but have a valid cerficate ,get userrole {userrole} ")
             elif certificate is not None :

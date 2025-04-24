@@ -599,7 +599,7 @@ def main():
         
         if opc_da.connect():
             print(f" Connected to {opc_da.server_name}")
-            print(common._format_json_(opc_da.status))
+            print(common.pretify_json(opc_da.status))
             servers = opc_da.GetOPCServers()
             print("Available OPC Servers:", servers)
             print()
@@ -613,7 +613,7 @@ def main():
            # 测试服务器状态
             status = opc_da.GetServerStatus()
             print("Server Status::\n")
-            print(common._format_json_(status))
+            print(common.pretify_json(status))
             
             # 设置客户端名称
         
