@@ -51,10 +51,15 @@ class _OPCWrapper_:
 
     def __init__(self,  name:str= 'OPC.DELTAV.1',nodename:str="PROPLUS", endpoint: str = 'opc.tcp://0.0.0.0:4840'):
         """init the server"""
+        self._name=name
+        self._nodename=nodename
+        self._endpoint=endpoint
+        self._starttime = datetime.datetime.now(datetime.UTC)
+        self._status:int = 0
         self.event = self.Event()
-        self.node = _OPCUANode_(name=name,nodename=nodename,endpoint=endpoint,application_uri=name)
+        self.node = _OPCUANode_(name=self._name,nodename= self._nodename,endpoint=self._endpoint,application_uri=self._name)
         self.security = _OPCUASecurity_(wrapper=self)
-        self.da_manager = _OPCDAManager_(wrapper=self,nodename=nodename) 
+        self.da_manager = _OPCDAManager_(wrapper=self,nodename=self._nodename) 
       
         self.user_manager = _OPCUAUserManager_()  # 强制初始化，避免 None
         self.server = Server(user_manager=self.user_manager)
@@ -66,7 +71,7 @@ class _OPCWrapper_:
         self.executor_browser = ThreadPoolExecutor(max_workers=2)
         self.executor_opcda = ThreadPoolExecutor(max_workers=2)
         self.executor_opchda = ThreadPoolExecutor(max_workers=2)
-        self._max_time: float = 9999999.0
+        self._max_time: int = 9999999
       
         self._manual_stop: bool = False
     @property
@@ -107,17 +112,31 @@ class _OPCWrapper_:
     
 
     async def GetServerStatus(self) -> dict:
+            
+            status= {0:"Initializating",
+                     1:"Running",
+                     2:"etup UA Node",
+                     3:"Setup DA Broker Task",
+                     4:"STart Session period Monitor Task",
+                     5:"STart UA Node period Update Task",
+                     6:"STart Event period Task",
+                     7:"Restarting",
+                     8:"Stoping",
+                     9:"Shuting Down",
+                     10:"Stopped",
+                     }
              
             server_details = {
                  
-              
+                
                
                 "ServerName":  self.node.name,
                 "NodeName":  self.node.nodename,
-                "application_uri": self.node.application_uri,
-                "idx": self.node.idx,
-                "endpoint": self.node.endpoint,
-              #  "Status": self.server.status,
+                "Application_uri": self.node.application_uri,
+                "Endpoint": self.node.endpoint,
+                "StartTime":self._starttime.strftime("%Y-%m-%d %H:%M:%S"),
+                "CurrentTime":datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
+                "Status": status.get(self._status,"Unknow"),
                 "version": '1.0.18',
                 "VendorInfo": 'Juda.monster',
                 "author": "juda.wu"
@@ -125,7 +144,7 @@ class _OPCWrapper_:
              
             return server_details
     async def setup_opc_ua_server(self):
-     
+        self._status = 2
         await self.server.init()
         uri = self.node.application_uri
         self.node.idx = await self.server.register_namespace(uri)
@@ -134,14 +153,14 @@ class _OPCWrapper_:
         objects = self.server.nodes.objects
         self.node.da_folder = await objects.add_folder(self.node.idx, self.node.name)  
         logging.debug(f"_OPCDAWrapper_.setup_opc_ua_server:add foulder to self.node.da_folder: {self.node.idx}: {self.node.name}")
-       
+      
         self.server.iserver.history_manager = self.history_manager
         
         await self.server.iserver.history_manager.init()
         logging.debug("_OPCDAWrapper_.setup_opc_ua_server: Initialized CustomHistoryManager with OPCHDA")
 
        
-       
+        
         if not os.path.exists(self.security._initial_cert_path) or not os.path.exists(self.security._initial_key_path):
             logging.info("_OPCDAWrapper_.setup_opc_ua_server:init Certificate or key not found, generating new ones...")
             await self.security.generate_self_signed_cert(self.security._initial_cert_path, self.security._initial_key_path)
@@ -190,38 +209,46 @@ class _OPCWrapper_:
 
         self.node.parameters_folder = await self.node.da_folder.add_folder(self.node.idx, "Parameters and Methods")  
         self.node.parameters_nodes['PARA1']=await self.node.parameters_folder.add_variable(
-            self.node.idx, "uaserver_max_running_time", self.max_time, ua.VariantType.Double
+            self.node.idx, "OPC wrapper Max Running time (s)", self.max_time, ua.VariantType.Int64
         )
         await self.node.parameters_nodes['PARA1'].set_writable()
         self.node.parameters_nodes['PARA2']=await self.node.parameters_folder.add_variable(
-            self.node.idx, "uaserver_manual_stop_flag", self.manual_stop, ua.VariantType.Boolean
+            self.node.idx, "OPC wrapper  Manual Stop Flag", self.manual_stop, ua.VariantType.Boolean
         )
         await self.node.parameters_nodes['PARA2'].set_writable()
         self.node.parameters_nodes['PARA3']=await self.node.parameters_folder.add_variable(
-            self.node.idx, "da_update_rate_ms", self.da_manager._da_update_rate, ua.VariantType.Int64
+            self.node.idx, "OPC DA item update rate (ms)", self.da_manager._da_update_rate, ua.VariantType.Int64
         )
         await self.node.parameters_nodes['PARA3'].set_writable()
         self.node.parameters_nodes['PARA4']=await self.node.parameters_folder.add_variable(
-            self.node.idx, "ua_update_rate_s", self.da_manager._ua_update_rate, ua.VariantType.Int64
+            self.node.idx, "OPC UA node update rate (s)", self.da_manager._ua_update_rate, ua.VariantType.Int64
         )
         await self.node.parameters_nodes['PARA4'].set_writable()
         self.node.parameters_nodes['PARA5']=await self.node.parameters_folder.add_variable(
-            self.node.idx, "history_event_update_rate_s", self.history_manager._event_update_rate, ua.VariantType.Int64
+            self.node.idx, "History event update rate (s)", self.history_manager._event_update_rate, ua.VariantType.Int64
         )
         await self.node.parameters_nodes['PARA5'].set_writable()
         self.node.parameters_nodes['PARA6']=await self.node.parameters_folder.add_variable(
-            self.node.idx, "anonymous_user_allowtime_s", self.user_manager._anonymous_timeout, ua.VariantType.Int64
+            self.node.idx, "Anonymous User allowtime (s)", self.user_manager._anonymous_timeout, ua.VariantType.Int64
         )
         await self.node.parameters_nodes['PARA6'].set_writable()
         self.node.parameters_nodes['PARA7']=await self.node.parameters_folder.add_variable(
-            self.node.idx, "session_cooldown_time_s", self.user_manager._cooldown_time, ua.VariantType.Int64
+            self.node.idx, "Session cooldown time (s)", self.user_manager._cooldown_time, ua.VariantType.Int64
         )
         await self.node.parameters_nodes['PARA7'].set_writable()
         self.node.parameters_nodes['PARA8']=await self.node.parameters_folder.add_variable(
-            self.node.idx, "session__monitor_period_s", self.user_manager._monitor_period, ua.VariantType.Int64
+            self.node.idx, "Session monitor period (s)", self.user_manager._monitor_period, ua.VariantType.Int64
         )
         await self.node.parameters_nodes['PARA8'].set_writable()
-
+        self.node.parameters_nodes['PARA9']=await self.node.parameters_folder.add_variable(
+            self.node.idx, "Max DST Licenses", self.da_manager._max_items, ua.VariantType.Int64
+        )
+        self.node.parameters_nodes['PARA10']=await self.node.parameters_folder.add_variable(
+            self.node.idx, "Used DST Licenses", 0, ua.VariantType.Int64
+        )
+        self.node.parameters_nodes['PARA11']=await self.node.parameters_folder.add_variable(
+            self.node.idx, "Server Status", 0, ua.VariantType.Int64
+        )
         self.node.events_node = await self.node.da_folder.add_object(self.node.idx, "Alarms and Events")                                  
         await self.node.events_node.write_attribute(
                 ua.AttributeIds.EventNotifier,
@@ -236,7 +263,7 @@ class _OPCWrapper_:
         self.node.historian_node = await self.node.da_folder.add_folder(self.node.idx, "Countinuous Historain")  
         logging.debug("_OPCDAWrapper_.setup_opc_ua_server: Created Historian folder")
 
-
+        
         # 添加方法并设置权限
         self.node.methods_nodes = {
             "write_items": await self.node.parameters_folder.add_method(
@@ -314,7 +341,7 @@ class _OPCWrapper_:
 
 
         }
-       
+        
         logging.info("_OPCDAWrapper_.setup_opc_ua_server: setup_opc_ua_server completed")
         
         # 为每个方法设置角色权限
@@ -327,6 +354,7 @@ class _OPCWrapper_:
                     await self.node.last_error_desc.write_value(f"_OPCDAWrapper_.restart:Unauthorized attempt to restart opc ua server ")
                 raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
             self.event.restart.set()
+            self._status = 6
             return [ua.Variant(True, ua.VariantType.Boolean)]     
     async def stop(self,restore_init_cert:bool= False):
         self.event.running.clear()
@@ -335,7 +363,7 @@ class _OPCWrapper_:
         self.event.shutdown.set()
         self.event.restart.clear()
         self.event.broswe_opcda_struture.clear()
-           
+        self._status = 7  
 
        # 清理匿名会话
         if self.user_manager and self.user_manager.anonymous_sessions:
@@ -346,9 +374,17 @@ class _OPCWrapper_:
             
             logging.debug("_OPCDAWrapper_.stop:Cleared all anonymous sessions during shutdown")
   
-        if  self.user_manager.connected_clients["count"] != 0:
-             for session_id in list(self.user_manager.connected_clients["sessions"].keys()):
-                 self.security.disconnect_client(session_id)
+        if self.user_manager.connected_clients["count"] != 0:
+            for session_id in list(self.user_manager.connected_clients["sessions"].keys()):
+                try:
+                    # Call disconnect_session directly instead of disconnect_client
+                    success = await self.user_manager.disconnect_session(self.server.iserver, session_id)
+                    if success:
+                        logging.debug(f"_OPCDAWrapper_.stop: Successfully disconnected session {session_id}")
+                    else:
+                        logging.warning(f"_OPCDAWrapper_.stop: Failed to disconnect session {session_id}")
+                except Exception as e:
+                    logging.error(f"_OPCDAWrapper_.stop: Error disconnecting session {session_id}: {str(e)}")
                  
         # self.user_manager.connected_clients["count"] = 0
         # self.user_manager.connected_clients["sessions"].clear()
@@ -362,9 +398,9 @@ class _OPCWrapper_:
                     logging.warning(f"_OPCDAWrapper_.stop:Failed to delete event node {node_id}: {str(e)}")
         self.node.event_nodes.clear()
         try:
-            self.executor_browser.shutdown(wait=True, timeout=5)
-            self.executor_opcda.shutdown(wait=True, timeout=5)
-            self.executor_opchda.shutdown(wait=True, timeout=5)
+            self.executor_browser.shutdown(wait=True)
+            self.executor_opcda.shutdown(wait=True)
+            self.executor_opchda.shutdown(wait=True)
         except TimeoutError:
             logging.error("Executor shutdown timed out")
             self.executor_browser.shutdown(wait=False)
@@ -383,7 +419,7 @@ class _OPCWrapper_:
         #仅在服务器仍运行时调用 stop()
         if self.server and hasattr(self.server, 'bserver') and self.server.bserver is not None:
             await self.server.stop()
-          
+        self._status = 8 
         logging.info(f"_OPCDAWrapper_.stop:Shutdown complete at {time.strftime('%H:%M:%S')}")
     
 
@@ -470,73 +506,118 @@ class _OPCWrapper_:
             await self.node.last_error_desc.write_value(f"Error processing JSON: {str(e)}")
             return [ua.Variant(False, ua.VariantType.Boolean)]
     async def start(self):
-            self.event.running.set()  
-            self.event.shutdown.clear()
-            await self.setup_opc_ua_server()            
-            loop = asyncio.get_running_loop()
-            logging.debug(f"Executor browser active: {not self.executor_browser._shutdown}")
-            logging.debug(f"Executor opcda active: {not self.executor_opcda._shutdown}")
+                monitor_task=None
+                update_task=None
+                event_update_task=None
+                if self.event.restart.is_set():
+                     self.__init__(name=self._name,nodename=self._nodename,endpoint=self._endpoint)
+                     self.event.restart.clear()
+                
+                self.event.running.set()  
+                self.event.shutdown.clear()
+                await self.setup_opc_ua_server()   
+                self._status = 3         
+                loop = asyncio.get_running_loop()
+                logging.debug(f"Executor browser active: {not self.executor_browser._shutdown}")
+                logging.debug(f"Executor opcda active: {not self.executor_opcda._shutdown}")
 
-            def log_task_result(future):
+                def log_task_result(future):
+                        try:
+                            result = future.result()
+                            logging.debug(f"Task completed with result: {result}")
+                        except Exception as e:
+                            logging.error(f"Task failed: {str(e)}", exc_info=True)
+                deltavbrowser_task = loop.run_in_executor(self.executor_browser, self.da_manager.broswer_thread)
+                deltavbrowser_task.add_done_callback(log_task_result)
+                deltavdata_task = loop.run_in_executor( self.executor_opcda, self.da_manager.opcda_thread)
+                deltavdata_task.add_done_callback(log_task_result)
+                logging.debug(f"Scheduled tasks: browser={deltavbrowser_task}, data={deltavdata_task}")
+                await asyncio.sleep(1)  # Allow threads to start
+            
+            
+            
+                async with self.server:
                     try:
-                        result = future.result()
-                        logging.debug(f"Task completed with result: {result}")
+
+                        self.server.set_security_policy(self.security.security_policies)
+                        logging.debug(f"_OPCDAWrapper_.start: Security policies set: {[policy.URI for policy in self.security.security_policies]}")
+                        
+                        logging.debug("Performing initial OPC DA browse the top 2 level strture...")
+                        await self.da_manager.broswe_folder(max_level=2)
+                                    
+                        self._status = 4
+                        # 持续运行的监控任务
+                        monitor_task = asyncio.create_task(self.user_manager.monitor_anonymous_sessions(self.server.iserver))
+                        logging.debug("_OPCDAWrapper_.start: Monitor anonymous sessions task started")
+
+                        logging.debug("Wait 10 seconds for update_ua_nodes task...")
+                        await asyncio.sleep(10)
+                        # 启动周期性更新任务
+                        self._status = 5
+                        update_task = asyncio.create_task(self.da_manager.update_ua_nodes())
+                        logging.debug("_OPCDAWrapper_.start: Periodic update task started")
+                        await asyncio.sleep(1)
+                        self._status = 6
+                        event_update_task = asyncio.create_task( self.history_manager.periodic_event_update())
+                        logging.debug("_OPCDAWrapper_.start: Periodic event update task started")
+                        self._status = 1  #set status to running
+                        # 主循环，监听事件并支持动态调用
+                        while not self.event.shutdown.is_set():
+                            
+                            if self.event.restart.is_set() or self._manual_stop or datetime.datetime.now(datetime.UTC) > self._starttime + datetime.timedelta(hours=self._max_time):
+                                logging.debug("_OPCDAWrapper_.start: Restart event or systme max time reached or manual stop flag set detected, shutting down...")
+                                self._status = 8 
+                                self.event.shutdown.set()
+                                monitor_task.cancel()
+                                update_task.cancel()
+                                event_update_task.cancel()
+                                break
+                            await asyncio.sleep(1)  # 短暂休眠，避免 CPU 占用过高
+                    
+                            
+                            
+
+                        # 等待任务完成
+                        try:
+                            await asyncio.gather(
+                                deltavbrowser_task, deltavdata_task, monitor_task, update_task, event_update_task,
+                                return_exceptions=True
+                            )
+                        except asyncio.CancelledError:
+                            logging.debug("_OPCDAWrapper_.start: Handled CancelledError during task shutdown")
+                            pass
+                    except asyncio.CancelledError:
+                            logging.debug("_OPCDAWrapper_.start: Handled CancelledError in finally block")
+                            pass            
+                    
                     except Exception as e:
-                        logging.error(f"Task failed: {str(e)}", exc_info=True)
-            deltavbrowser_task = loop.run_in_executor(self.executor_browser, self.da_manager.broswer_thread)
-            deltavbrowser_task.add_done_callback(log_task_result)
-            deltavdata_task = loop.run_in_executor( self.executor_opcda, self.da_manager.opcda_thread)
-            deltavdata_task.add_done_callback(log_task_result)
-            logging.debug(f"Scheduled tasks: browser={deltavbrowser_task}, data={deltavdata_task}")
-            await asyncio.sleep(1)  # Allow threads to start
-          
-          
-        
-            async with self.server:
-                try:
-                    self.server.set_security_policy(self.security.security_policies)
-                    logging.debug(f"_OPCDAWrapper_.start: Security policies set: {[policy.URI for policy in self.security.security_policies]}")
-                    
-                    logging.debug("Performing initial OPC DA browse the top 2 level strture...")
-                    await self.da_manager.broswe_folder(max_level=2)
-                                   
-                    
-                    # 持续运行的监控任务
-                    monitor_task = asyncio.create_task(self.user_manager.monitor_anonymous_sessions(self.server.iserver))
-                    logging.debug("_OPCDAWrapper_.start: Monitor anonymous sessions task started")
-
-                    logging.debug("Wait 10 seconds for update_ua_nodes task...")
-                    await asyncio.sleep(10)
-                    # 启动周期性更新任务
-                    update_task = asyncio.create_task(self.da_manager.update_ua_nodes())
-                    logging.debug("_OPCDAWrapper_.start: Periodic update task started")
-                
-                    event_update_task = asyncio.create_task( self.history_manager.periodic_event_update())
-                    logging.debug("_OPCDAWrapper_.start: Periodic event update task started")
-
-                    # 主循环，监听事件并支持动态调用
-                    while not self.event.shutdown.is_set():
-                        if self.event.restart.is_set():
-                            logging.debug("_OPCDAWrapper_.start: Restart event detected, shutting down...")
-                            self.event.shutdown.set()
+                        logging.error(f"_OPCDAWrapper_.start: Error occurred: {str(e)}")
+                    finally:
+                        self.event.running.clear()
+                        self.event.shutdown.set()
+                       # Avoid redundant cancellation
+                        if monitor_task and not monitor_task.done():
+                        
                             monitor_task.cancel()
+                            logging.debug("_OPCDAWrapper_.start: Cancelled monitor_task")
+                        if update_task and not update_task.done():
                             update_task.cancel()
+                            logging.debug("_OPCDAWrapper_.start: Cancelled update_task")
+                        if event_update_task and not event_update_task.done():
                             event_update_task.cancel()
-                            break
-                        await asyncio.sleep(0.5)  # 短暂休眠，避免 CPU 占用过高
-
-                    # 等待任务完成
-                    await asyncio.gather(deltavbrowser_task, deltavdata_task,monitor_task, update_task, event_update_task, return_exceptions=True)
-                
-                except Exception as e:
-                    logging.error(f"_OPCDAWrapper_.start: Error occurred: {str(e)}")
-                finally:
-                    self.event.running.clear()
-                    self.event.shutdown.set()
-                    monitor_task.cancel()
-                    update_task.cancel()
-                    event_update_task.cancel()
-                    await asyncio.gather(deltavbrowser_task,deltavdata_task, monitor_task, update_task, event_update_task, return_exceptions=True)
-                    logging.debug(f"_OPCDAWrapper_.start: Start task completed at {time.strftime('%H:%M:%S')}")
-                    await asyncio.sleep(3)
- 
+                            logging.debug("_OPCDAWrapper_.start: Cancelled event_update_task")
+                        # Wait for tasks to complete or cancel
+                        try:
+                            await asyncio.gather(
+                                deltavbrowser_task, deltavdata_task, monitor_task, update_task, event_update_task,
+                                return_exceptions=True
+                            )
+                        except asyncio.CancelledError:
+                            logging.debug("_OPCDAWrapper_.start: Handled CancelledError in finally block")
+                            pass
+                        except: 
+                            pass
+                        logging.debug(f"_OPCDAWrapper_.start: Start task completed at {time.strftime('%H:%M:%S')}")
+                        self._status = 10
+                        await asyncio.sleep(3)
+            

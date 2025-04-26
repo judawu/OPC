@@ -97,10 +97,10 @@ class _OPCUASecurity_:
                         await  self._wrapper.node.last_error_desc.write_value(f"_OPCDAWrapper_.restore_initial_certificate:Unauthorized attempt to call restore_initial_certificate ")
                     raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
                 try:
-                    await  self._wrapper.server.load_certificate(self.initial_cert_path)
-                    await  self._wrapper.server.load_private_key(self.initial_key_path)
+                    await  self._wrapper.server.load_certificate(self._initial_cert_path)
+                    await  self._wrapper.server.load_private_key(self._initial_key_path)
                     self._wrapper.server.set_security_policy(self.security_policies)
-                    with open(self.initial_cert_path, "rb") as f:
+                    with open(self._initial_cert_path, "rb") as f:
                         
                         await  self._wrapper.node.cert_node.write_value(f.read())
                     logging.info("_OPCDAWrapper_.restore_initial_certificate:Restored initial certificate and security policies")

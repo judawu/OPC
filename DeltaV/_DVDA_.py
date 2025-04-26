@@ -138,7 +138,7 @@ class _OPCDA_:
         try:
             self.opc.ClientName =   self._client_name
             status = {
-                "author": "juda.wu", 
+             
                 "version": "1.1.0", 
                 "ServerState": self.opc.ServerState,  # 1=Running, 2=Failed, etc.          
                 "ServerNode": self.opc.ServerNode,            
@@ -342,8 +342,12 @@ class _OPCDA_:
             opc_items = []
             for i, item_path in enumerate(item_paths, 1):  # 从1开始分配client handle
                 try:
-                    if self.server_name=="DeltaV.DVSYSsvr.1" and ('_' not in item_path.split('.')[-1]):
-                        chnanged_item_path=item_path.replace('.', '.F_')
+                    field=item_path.split('.')[-1]
+                    if self.server_name=="DeltaV.DVSYSsvr.1" and ('_' not in field):
+                        if  field in ['TARGET','ACTUAL','UNITS'] :
+                            chnanged_item_path=item_path.replace('.', '.A_')
+                        else:                     
+                            chnanged_item_path=item_path.replace('.', 'F_')
                         opc_item = group.OPCItems.AddItem(chnanged_item_path, i)
                         if opc_item is None or (opc_item is not None and opc_item.ServerHandle == 0):
                             chnanged_item_path=item_path.replace('.', '.A_')
@@ -401,8 +405,12 @@ class _OPCDA_:
             opc_items = []
             for i, item_path in enumerate(item_paths, 1):
                 try:
-                    if self.server_name=="DeltaV.DVSYSsvr.1" and ('_' not in item_path.split('.')[-1]):
-                        chnanged_item_path=item_path.replace('.', '.F_')
+                    field=item_path.split('.')[-1]
+                    if self.server_name=="DeltaV.DVSYSsvr.1" and ('_' not in field):
+                        if  field in ['TARGET','ACTUAL','UNITS'] :
+                            chnanged_item_path=item_path.replace('.', '.A_')
+                        else:                     
+                            chnanged_item_path=item_path.replace('.', 'F_')
                         opc_item = group.OPCItems.AddItem(chnanged_item_path, i)
                         if opc_item is None or (opc_item is not None and opc_item.ServerHandle == 0):
                             chnanged_item_path=item_path.replace('.', '.A_')
@@ -495,8 +503,12 @@ class _OPCDA_:
             opc_items = []
             for i, item_path in enumerate(item_paths, 1):  # 从1开始分配client handle
                 try:
-                    if self.server_name=="DeltaV.DVSYSsvr.1" and ('_' not in item_path.split('.')[-1]):
-                        chnanged_item_path=item_path.replace('.', '.F_')
+                    field=item_path.split('.')[-1]
+                    if self.server_name=="DeltaV.DVSYSsvr.1" and ('_' not in field):
+                        if  field in ['TARGET','ACTUAL','UNITS'] :
+                            chnanged_item_path=item_path.replace('.', '.A_')
+                        else:                     
+                            chnanged_item_path=item_path.replace('.', 'F_')
                         opc_item = group.OPCItems.AddItem(chnanged_item_path, i)
                         if opc_item is None or (opc_item is not None and opc_item.ServerHandle == 0):
                             chnanged_item_path=item_path.replace('.', '.A_')

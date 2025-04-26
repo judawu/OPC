@@ -1,6 +1,6 @@
  {
-    "_max_time": 10.0,
-    "_manual_stop": true,
+    "_max_time": 180.0,
+    "_manual_stop": false,
     "da_manager": {
         "_da_update_rate": 2000,
         "_ua_update_rate": 20,
