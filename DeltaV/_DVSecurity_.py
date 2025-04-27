@@ -17,8 +17,8 @@ from asyncua import ua
 class _OPCUASecurity_:
         def __init__(self,wrapper):
             self._wrapper = wrapper
-            self._base_dir = os.path.dirname(os.path.abspath(__file__))
-            self._cert_dir = os.path.join(self._base_dir, "cert")
+           
+            self._cert_dir = os.path.join(wrapper._base_dir, "cert")
             self._initial_cert_path = os.path.join(self._cert_dir, "server_init_cert.pem")
             self._initial_key_path = os.path.join(self._cert_dir, "server_init_key.pem")
             self._cert_path = os.path.join(self._cert_dir, "server_cert.pem")
@@ -32,8 +32,8 @@ class _OPCUASecurity_:
                 if cert_path is None or key_path is None:
                     cert_path= self._cert_path
                     key_path=self._key_path
-                name =  self._wrapper.node.name
-                application_uri=self._wrapper.node.application_uri
+                name =  self._wrapper._name
+                application_uri=self._wrapper.application_uri
                 logging.debug(f"_OPCDAWrapper_.generate_self_signed_cert: Generating self-signed certificate at {cert_path} and key at {key_path}")
                 try:
                     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)

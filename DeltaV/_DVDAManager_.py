@@ -29,7 +29,7 @@ class _OPCDAManager_:
             self.structure={}
             
             
-            self.items=[f'{self.nodename}/FREOIDS.CV']
+            self.items=[f'{self.nodename}/OINTEG.CV']
                                
             
             self._opcdeltav = _OPCDA_(node_name=self.nodename,server_name = "OPC.DeltaV.1")

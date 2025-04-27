@@ -1,11 +1,14 @@
 import datetime
 import json
+import io
+import csv
 import asyncio
 import logging
 from typing import Dict, Optional
 from asyncua import ua
 from collections import deque  # Added import
 from _DVHDA_ import _OPCHDA_
+
 from _DVAE_ import EventChronicleClient
 class _OPChistoryManager_:
     def __init__(self,wrapper,server_name: str = "DeltaV.OPCHDAsvr"):
@@ -268,7 +271,7 @@ class _OPChistoryManager_:
                 logging.debug(f"test_alarm:Triggered alarm event: {alarm_gen.event}")
                 logging.debug(f"test_alarm:END test server event & alarm function")
                
-    def read_opchda(self,item_id, start_time, end_time, num_values, return_bounds=3):
+    def ReadRaw(self,item_id, start_time, end_time, num_values, return_bounds=3):
              
                 try:
                     if self._opchda.connect():
@@ -281,10 +284,86 @@ class _OPChistoryManager_:
                        return None
                 finally:
                      self._opchda.disconnect()
-                    
+    def SyncReadProcessed(self,itme_ids, start_time, end_time, interval,aggregates):
+             
+                try:
+                    if self._opchda.connect():
+                        results =  self._opchda.SyncReadProcessed(itme_ids,start_time, end_time, interval, aggregates)
+                        return results
+                    else:
+                        return None
+                except Exception as e:
+                       logging.error(f"CustomHistoryManager:Failed to connect OPCHDA: {str(e)}")    
+                       return None
+                finally:
+                     self._opchda.disconnect()
+    def GetItemAttributes(self):
+             
+                try:
+                    if self._opchda.connect():
+                        results =  self._opchda.GetItemAttributes()
+                        return results
+                    else:
+                        return None
+                except Exception as e:
+                       logging.error(f"CustomHistoryManager:Failed to connect OPCHDA: {str(e)}")    
+                       return None
+                finally:
+                     self._opchda.disconnect()             
                 
-                   
-    def sync_read_opchda(self,item_ids, start_time, end_time, max_values):
+    def GetAggregates(self):
+             
+                try:
+                    if self._opchda.connect():
+                        results =  self._opchda.GetAggregates()
+                        return results
+                    else:
+                        return None
+                except Exception as e:
+                       logging.error(f"CustomHistoryManager:Failed to connect OPCHDA: {str(e)}")    
+                       return None
+                finally:
+                     self._opchda.disconnect()  
+    def CreateBrowse(self):
+             
+                try:
+                    if self._opchda.connect():
+                        results =  self._opchda.CreateBrowse()
+                        return results
+                    else:
+                        return None
+                except Exception as e:
+                       logging.error(f"CustomHistoryManager:Failed to connect OPCHDA: {str(e)}")    
+                       return None
+                finally:
+                     self._opchda.disconnect()    
+    def GetServerStatus(self):
+             
+                try:
+                    if self._opchda.connect():
+                        results =  self._opchda.GetServerStatus()
+                        return results
+                    else:
+                        return None
+                except Exception as e:
+                       logging.error(f"CustomHistoryManager:Failed to connect OPCHDA: {str(e)}")    
+                       return None
+                finally:
+                     self._opchda.disconnect()     
+    def ValidateItemIDs(self,item_ids):
+             
+                try:
+                    if self._opchda.connect():
+                        results =  self._opchda.ValidateItemIDs(item_ids)
+                        return results
+                    else:
+                        return None
+                except Exception as e:
+                       logging.error(f"CustomHistoryManager:Failed to connect OPCHDA: {str(e)}")    
+                       return None
+                finally:
+                     self._opchda.disconnect()                   
+    def SyncReadRaw(self,item_ids, start_time, end_time, max_values):
                  
                     try:
                         if self._opchda.connect():
@@ -299,7 +378,21 @@ class _OPChistoryManager_:
                        return None
                     finally:
                         self._opchda.disconnect()
-                       
+    def  SyncReadAttribute(self,item_id, start_time, end_time, numattributes,attributesids):
+                 
+                    try:
+                        if self._opchda.connect():
+                           
+                            results =  self._opchda.SyncReadAttribute(item_id, start_time, end_time, numattributes,attributesids)
+                            #logging.debug(f"sync_read_opchda: get results from opchda server {results}")
+                            return results
+                        else:
+                             return None
+                    except Exception as e:
+                       logging.error(f"CustomHistoryManager:Failed to connect OPCHDA: {str(e)}")   
+                       return None
+                    finally:
+                        self._opchda.disconnect()             
                       
   
     async def enable_historizing(self, parent, item: str) -> list:
@@ -392,7 +485,7 @@ class _OPChistoryManager_:
             end_time=datetime.datetime.now()
             results = await asyncio.get_running_loop().run_in_executor(
                     self.opchda_executor,
-                    lambda: self.read_opchda(item, start_time, end_time, 3600)
+                    lambda: self.ReadRaw(item, start_time, end_time, 3600)
                 )
             if results is None:
                       return [ua.Variant("", ua.VariantType.String)]
@@ -718,7 +811,7 @@ class _OPChistoryManager_:
 
             results = await asyncio.get_running_loop().run_in_executor(
                     self.opchda_executor,
-                    lambda: self.read_opchda(item_id, start_time, end_time, num_values)
+                    lambda: self.ReadRaw(item_id, start_time, end_time, num_values)
                 )
             if results is None:
                       return ua.HistoryData(DataValues=[])
@@ -837,7 +930,7 @@ class _OPChistoryManager_:
               
                 results = await asyncio.get_running_loop().run_in_executor(
                     self.opchda_executor,
-                    lambda: self.sync_read_opchda(item_ids, start_time, end_time, max_values)
+                    lambda: self.SyncReadRaw(item_ids, start_time, end_time, max_values)
                 )
                 if results is None:
                       return [ua.Variant("", ua.VariantType.String)]
@@ -873,6 +966,316 @@ class _OPChistoryManager_:
                 return [ua.Variant(json_output, ua.VariantType.String)]
             except Exception as e:
                 logging.error(f"CustomHistoryManager.sync_read_raw_history:SyncReadRawHistory failed: {str(e)}")
+                return [ua.Variant("", ua.VariantType.String)]
+    async def read_raw_history_csv(self, parent, json_variant):
+            """
+            Reads historical data and returns it in CSV format.
+            Args:
+                parent: Parent object (context for OPC UA).
+                json_variant: UA Variant containing JSON input with item_ids, start_time, end_time, max_values.
+            Returns:
+                List containing a UA Variant with CSV string or empty string on error.
+            """
+            userrole = await self._wrapper.security._get_current_userrole()
+            if not self._wrapper.user_manager.check_method_permission(50, userrole):
+                logging.warning("CustomHistoryManager.read_raw_history_csv: Unauthorized attempt to query event history")
+                await self._wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+                await self._wrapper.node.last_error_desc.write_value("Unauthorized attempt to query event history")
+                raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
+
+            try:
+                json_input = json_variant.Value
+                logging.debug(f"CustomHistoryManager.read_raw_history_csv: Called with input: {json_input}")
+                input_data = json.loads(json_input)
+                item_ids = input_data.get("item_ids", [])
+                max_values = input_data.get("max_values", 0)
+                start_time_str = input_data.get("start_time")
+                end_time_str = input_data.get("end_time")
+
+                if not item_ids or not start_time_str or not end_time_str:
+                    raise ValueError("CustomHistoryManager.read_raw_history_csv: Missing required fields: item_ids, start_time, or end_time")
+
+                start_time = datetime.datetime.strptime(start_time_str, "%Y-%m-%d %H:%M:%S")
+                end_time = datetime.datetime.strptime(end_time_str, "%Y-%m-%d %H:%M:%S")
+
+                results = await asyncio.get_running_loop().run_in_executor(
+                    self.opchda_executor,
+                    lambda: self.SyncReadRaw(item_ids, start_time, end_time, max_values)
+                )
+                if results is None:
+                    return [ua.Variant("", ua.VariantType.String)]
+
+                # Create CSV output
+                output = io.StringIO()
+                csv_writer = csv.writer(output, lineterminator='\n')
+                # Write CSV header
+                csv_writer.writerow(["item_id", "value", "quality", "timestamp", "Time"])
+
+                # Process results for each item_id
+                for item_id in item_ids:
+                    item_data = results.get(item_id, {"values": [], "qualities": [], "timestamps": []})
+                    for value, quality, timestamp in zip(
+                        item_data["values"], item_data["qualities"], item_data["timestamps"]
+                    ):
+                        if isinstance(timestamp, datetime.datetime):
+                            if timestamp.tzinfo is None:
+                                timestamp = timestamp.replace(tzinfo=datetime.UTC)
+                            timestamp_num = timestamp.timestamp()  # Numeric timestamp
+                            timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                        else:
+                            timestamp = datetime.datetime.fromtimestamp(
+                                timestamp.timestamp(), tz=datetime.UTC
+                            )
+                            timestamp_num = timestamp.timestamp()  # Numeric timestamp
+                            timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+
+                        # Write row to CSV
+                        csv_writer.writerow([item_id, value, quality, timestamp_num, timestamp_str])
+
+                csv_output = output.getvalue()
+                output.close()
+                return [ua.Variant(csv_output, ua.VariantType.String)]
+
+            except Exception as e:
+                logging.error(f"CustomHistoryManager.read_raw_history_csv: Failed: {str(e)}")
+                return [ua.Variant("", ua.VariantType.String)]
+    async def read_history_processed(self, parent, json_variant):
+            """
+            Reads processed historical data and returns it in JSON format.
+            Args:
+                parent: Parent object (context for OPC UA).
+                json_variant: UA Variant containing JSON input with item_ids, start_time, end_time, Interval, Aggregates.
+            Returns:
+                List containing a UA Variant with JSON string or empty string on error.
+            """
+            userrole = await self._wrapper.security._get_current_userrole()
+            if not self._wrapper.user_manager.check_method_permission(50, userrole):
+                logging.warning("CustomHistoryManager.read_history_processed: Unauthorized attempt to query event history")
+                await self._wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+                await self._wrapper.node.last_error_desc.write_value("Unauthorized attempt to query event history")
+                raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
+
+            try:
+                json_input = json_variant.Value
+                logging.debug(f"CustomHistoryManager.read_history_processed: Called with input: {json_input}")
+                input_data = json.loads(json_input)
+                item_ids = input_data.get("item_ids", ['test'])
+                interval = input_data.get("interval", 0)
+                aggregates = input_data.get("aggregates", [1])
+                start_time_str = input_data.get("start_time")
+                end_time_str = input_data.get("end_time")
+              
+                if not item_ids or not start_time_str or not end_time_str or not aggregates or interval <= 0:
+                    raise ValueError("CustomHistoryManager.read_history_processed: Missing or invalid required fields: item_ids, start_time, end_time, Interval, or Aggregates")
+
+                start_time = datetime.datetime.strptime(start_time_str, "%Y-%m-%d %H:%M:%S")
+                end_time = datetime.datetime.strptime(end_time_str, "%Y-%m-%d %H:%M:%S")
+
+                # Ensure aggregates list matches item_ids length
+                if len(aggregates) < len(item_ids):
+                    aggregates =aggregates+ (len(item_ids)-len(aggregates)+1)*[1]
+                elif len(aggregates) > len(item_ids):
+                    aggregates =aggregates[:len(item_ids)+1]
+                else:
+                     aggregates.append(1)
+
+                results = await asyncio.get_running_loop().run_in_executor(
+                    self.opchda_executor,
+                    lambda: self.SyncReadProcessed(item_ids, start_time, end_time, interval, aggregates)
+                )
+                if results is None:
+                    return [ua.Variant("", ua.VariantType.String)]
+
+                output = {}
+                for item_id in item_ids:
+                    data_points = []
+                    item_data = results.get(item_id, {"values": [], "qualities": [], "timestamps": []})
+                    for value, quality, timestamp in zip(
+                        item_data["values"], item_data["qualities"], item_data["timestamps"]
+                    ):
+                        if isinstance(timestamp, datetime.datetime):
+                            if timestamp.tzinfo is None:
+                                timestamp = timestamp.replace(tzinfo=datetime.UTC)
+                            timestamp_num = timestamp.timestamp()
+                            timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                        else:
+                            timestamp = datetime.datetime.fromtimestamp(timestamp.timestamp(), tz=datetime.UTC)
+                            timestamp_num = timestamp.timestamp()
+                            timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+
+                        data_points.append({
+                            "value": value,
+                            "quality": quality,
+                            "timestamp": timestamp_num,
+                            "Time": timestamp_str
+                        })
+                    output[item_id] = data_points
+
+                json_output = json.dumps(output, ensure_ascii=False)
+                return [ua.Variant(json_output, ua.VariantType.String)]
+
+            except Exception as e:
+                logging.error(f"CustomHistoryManager.read_history_processed: Failed: {str(e)}")
+                return [ua.Variant("", ua.VariantType.String)]
+    async def sync_read_history_data_attributes(self, parent, json_variant):
+            """
+            Reads attribute data and returns it in JSON format.
+            Args:
+                parent: Parent object (context for OPC UA).
+                json_variant: UA Variant containing JSON input with item_id, start_time, end_time, attribute_ids.
+            Returns:
+                List containing a UA Variant with JSON string or empty string on error.
+            """
+            userrole = await self._wrapper.security._get_current_userrole()
+            if not self._wrapper.user_manager.check_method_permission(50, userrole):
+                logging.warning("CustomHistoryManager.sync_read_history_attribute: Unauthorized attempt to query attribute history")
+                await self._wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+                await self._wrapper.node.last_error_desc.write_value("Unauthorized attempt to query attribute history")
+                raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
+
+            try:
+                json_input = json_variant.Value
+                logging.debug(f"CustomHistoryManager.sync_read_history_attribute: Called with input: {json_input}")
+                input_data = json.loads(json_input)
+                item_id = input_data.get("item_id", "test")
+                attributeids = input_data.get("attributeids", [1])
+                num_attributeids=len(attributeids)
+                start_time_str = input_data.get("start_time")
+                end_time_str = input_data.get("end_time")
+                attributeids.append(0)  #fix bug
+               
+
+                start_time = datetime.datetime.strptime(start_time_str, "%Y-%m-%d %H:%M:%S")
+                end_time = datetime.datetime.strptime(end_time_str, "%Y-%m-%d %H:%M:%S")
+
+                results = await asyncio.get_running_loop().run_in_executor(
+                    self.opchda_executor,
+                    lambda: self.SyncReadAttribute(item_id, start_time, end_time, num_attributeids, attributeids)
+                )
+                if results is None:
+                    return [ua.Variant("", ua.VariantType.String)]
+
+                
+
+                json_output = json.dumps(results, ensure_ascii=False)
+                return [ua.Variant(json_output, ua.VariantType.String)]
+
+            except Exception as e:
+                logging.error(f"CustomHistoryManager.sync_read_history_attribute: Failed: {str(e)}")
+                return [ua.Variant("", ua.VariantType.String)]      
+    async def get_history_attributesid(self, parent):
+            """
+            Retrieves item attributes and returns them in JSON format.
+            Args:
+                parent: Parent object (context for OPC UA).
+                json_variant: UA Variant (not used, included for consistency).
+            Returns:
+                List containing a UA Variant with JSON string of item attributes or empty string on error.
+            """
+            userrole = await self._wrapper.security._get_current_userrole()
+            if not self._wrapper.user_manager.check_method_permission(50, userrole):
+                logging.warning("CustomHistoryManager.get_history_attributesid: Unauthorized attempt to query item attributes")
+                await self._wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+                await self._wrapper.node.last_error_desc.write_value("Unauthorized attempt to query item attributes")
+                raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
+
+            try:
+                results = await asyncio.get_running_loop().run_in_executor(
+                    self.opchda_executor,
+                    lambda: self.GetItemAttributes()
+                )
+                if results is None:
+                    return [ua.Variant("", ua.VariantType.String)]
+
+                json_output = json.dumps(results, ensure_ascii=False)
+                return [ua.Variant(json_output, ua.VariantType.String)]
+
+            except Exception as e:
+                logging.error(f"CustomHistoryManager.get_history_attributesid: Failed: {str(e)}")
+                return [ua.Variant("", ua.VariantType.String)]
+    async def get_history_items(self, parent):
+         
+            userrole = await self._wrapper.security._get_current_userrole()
+            if not self._wrapper.user_manager.check_method_permission(50, userrole):
+                logging.warning("CustomHistoryManager.get_history_items: Unauthorized attempt to query item attributes")
+                await self._wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+                await self._wrapper.node.last_error_desc.write_value("Unauthorized attempt to query item attributes")
+                raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
+
+            try:
+                results = await asyncio.get_running_loop().run_in_executor(
+                    self.opchda_executor,
+                    lambda: self.CreateBrowse()
+                )
+                items={}
+                if results is None:
+                    return [ua.Variant("", ua.VariantType.String)]
+                else:
+                     items={"items":results}
+                json_output = json.dumps(items, ensure_ascii=False)
+                return [ua.Variant(json_output, ua.VariantType.String)]
+
+            except Exception as e:
+                logging.error(f"CustomHistoryManager.get_history_items: Failed: {str(e)}")
+                return [ua.Variant("", ua.VariantType.String)]
+    async def validate_history_items(self, parent,json_variant):
+          
+            userrole = await self._wrapper.security._get_current_userrole()
+            if not self._wrapper.user_manager.check_method_permission(50, userrole):
+                logging.warning("CustomHistoryManager.validate_history_items: Unauthorized attempt to query item attributes")
+                await self._wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+                await self._wrapper.node.last_error_desc.write_value("Unauthorized attempt to query item attributes")
+                raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
+
+            try:
+                
+                json_input = json_variant.Value
+                logging.debug(f"CustomHistoryManager.validate_history_items: Called with input: {json_input}")
+                input_data = json.loads(json_input)
+                item_ids = input_data.get("item_ids", ["test"])
+                results = await asyncio.get_running_loop().run_in_executor(
+                    self.opchda_executor,
+                    lambda: self.ValidateItemIDs(item_ids)
+                )
+           
+                if results is None:
+                    return [ua.Variant("", ua.VariantType.String)]
+              
+                json_output = json.dumps(results, ensure_ascii=False)
+                return [ua.Variant(json_output, ua.VariantType.String)]
+
+            except Exception as e:
+                logging.error(f"CustomHistoryManager.validate_history_items: Failed: {str(e)}")
+                return [ua.Variant("", ua.VariantType.String)]
+    async def get_history_aggregates(self, parent):
+            """
+            Retrieves supported aggregates and returns them in JSON format.
+            Args:
+                parent: Parent object (context for OPC UA).
+                json_variant: UA Variant (not used, included for consistency).
+            Returns:
+                List containing a UA Variant with JSON string of aggregates or empty string on error.
+            """
+            userrole = await self._wrapper.security._get_current_userrole()
+            if not self._wrapper.user_manager.check_method_permission(50, userrole):
+                logging.warning("CustomHistoryManager.get_history_aggregates: Unauthorized attempt to query aggregates")
+                await self._wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+                await self._wrapper.node.last_error_desc.write_value("Unauthorized attempt to query aggregates")
+                raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
+
+            try:
+                results = await asyncio.get_running_loop().run_in_executor(
+                    self.opchda_executor,
+                    lambda: self.GetAggregates()
+                )
+                if results is None:
+                    return [ua.Variant("", ua.VariantType.String)]
+
+                json_output = json.dumps(results, ensure_ascii=False)
+                return [ua.Variant(json_output, ua.VariantType.String)]
+
+            except Exception as e:
+                logging.error(f"CustomHistoryManager.get_history_aggregates: Failed: {str(e)}")
                 return [ua.Variant("", ua.VariantType.String)]
     async def update_events(self, events):
            

@@ -24,13 +24,14 @@ class _OPCHDA_:
         logging.debug(f"_OPCHDA_.connect: Attempting to connect to {self.server_name}")
         try:
             pythoncom.CoInitialize()
+         
             self.opc_hda = win32com.client.Dispatch("OpcHda.Automation")
             logging.debug(f"_OPCHDA_.connect: Successfully created OpcHda.Automation instance")
-
+            
             if hasattr(self.opc_hda, "Parent"):
                 self.hda_server = self.opc_hda.Parent
                 logging.debug(f"_OPCHDA_.connect: Successfully accessed Parent")
-          
+                
                 self.hda_server.Connect(self.server_name)
              
                 self.status = self.GetServerStatus()
@@ -91,7 +92,7 @@ class _OPCHDA_:
             
             self.hda_server.ClientName= self._client_name
             return {
-                "author": "juda.wu", 
+              
                 "version": "1.1.0", 
                 "Status": self.hda_server.HistorianStatus,
                 "StatusString": self.hda_server.StatusString,
@@ -144,7 +145,7 @@ class _OPCHDA_:
                 attr_list = List(attributes)
             attr_dict={}
             attr_dict["ItemAttributes"]=attr_list
-            return attr_dict
+            return common.pretify_data(attr_dict)
         except Exception as e:
             logging.error(f"_OPCHDA_.GetItemAttributes: Failed to get item attributes: {str(e)}")
             return None
@@ -169,7 +170,7 @@ class _OPCHDA_:
                 } 
                            
          
-                return Aggregates_list
+                return common.pretify_data(Aggregates_list)
             else:
                 return None
 
@@ -388,7 +389,7 @@ class _OPCHDA_:
                         "timestamps": timestamps
                     }                                          
        
-                return data
+                return common.pretify_data(data)
                
             except Exception as e:
                     logging.error(f"_OPCHDA_SyncReadAttribute: Failed to SyncReadAttribute: {str(e)}, inner error is: {self.GetErrorString(common.extract_scode(e))}", exc_info=True)
@@ -596,8 +597,7 @@ def main():
             attributes = opc_hda.GetItemAttributes()
             print("Get OPCHDA Item Attributes:", attributes)
             print()
-            print("Get OPCHDA Item Attributes pretify_datan\n", common.pretify_data(attributes))
-            print()
+           
             print("Get OPCHDA Item Attributes: pretify_json\n ", common.pretify_json(attributes))
             print()
             Aggregates  = opc_hda.GetAggregates()
@@ -605,14 +605,13 @@ def main():
             print()
             end_time = datetime.datetime.now()  + datetime.timedelta(hours=8)
             start_time = end_time - datetime.timedelta(hours=1)
-            item_attribute_data = opc_hda.SyncReadAttribute(item_ids[20], start_time, end_time, 11, [1,4,13,14,15,16,-2147483646, -2147483645,-2147483630,-2147483613,-2147483598,0])
+            item_attribute_data = opc_hda.SyncReadAttribute("V4-AIC-DO/PID1/PV.CV", start_time, end_time, 11, [1,4,13,14,15,16,-2147483646, -2147483645,-2147483630,-2147483613,-2147483598,0])
           
-            print(f"Test SyncReadAttribute for {item_ids[20]} item_attribute_data is: {item_attribute_data}" )
+            print(f"Test SyncReadAttribute for V4-AIC-DO/PID1/PV.CV item_attribute_data is: {item_attribute_data}" )
             print()
             print("item_attribute_data in format json\n", common.pretify_json(item_attribute_data))
             print()
-            print("item_attribute_data in format data\n ", common.pretify_data(item_attribute_data))
-            print()
+         
             print()
             #item_ids =  ["V1-IO/DO1_NA_PV.CV","V1-IO/PH1_MV_PV.CV"]
             # print()
@@ -623,8 +622,7 @@ def main():
             print()
             print("ReadRaw is in format json\n", common.pretify_json(item_data))
             print()
-            print("ReadRaw is in format data \n", common.pretify_data(item_data))
-            print()
+          
             print()
             
         
@@ -691,9 +689,14 @@ def main():
         print("disconnected from OPCHDA server")
 
 if __name__ == "__main__":
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    log_dir = os.path.join(base_dir, "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = os.path.join(log_dir,'opchda.log')
     logging.basicConfig(
-        filename=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'opchdaserver.log'),
-        level=logging.DEBUG,
-        format='%(asctime)s - %(levelname)s - %(message)s'
-    )
+            filename=log_file,
+            level=logging.DEBUG,
+            format='%(asctime)s - %(levelname)s - %(message)s'
+        )
+
     main()

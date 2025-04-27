@@ -43,7 +43,7 @@ class _OPCDA_:
                 self.browser = self.opc.CreateBrowser()
                 self.browser.MoveToRoot()
             except:
-                logging.error(f"_OPCDA_.connect:connect  Failed to create browser for OPC server {self.server_name} on {target}")
+                logging.error(f"_OPCDA_.connect:connect  Failed to create browser for OPC server {self.server_name} on {target},continue...")
                 
                 
             self.groups = self.opc.OPCGroups
@@ -904,7 +904,9 @@ def main():
 
 if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    log_file = os.path.join(base_dir,'opcda.log')
+    log_dir = os.path.join(base_dir, "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = os.path.join(log_dir,'opcda.log')
     logging.basicConfig(
             filename=log_file,
             level=logging.DEBUG,

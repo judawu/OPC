@@ -2,7 +2,7 @@ import logging
 import os
 import time
 import datetime
-
+import socket
 import pythoncom
 import json
 
@@ -49,29 +49,32 @@ class _OPCWrapper_:
         
 
 
-    def __init__(self,  name:str= 'OPC.DELTAV.1',nodename:str="PROPLUS", endpoint: str = 'opc.tcp://0.0.0.0:4840'):
+    def __init__(self,  name:str= 'OPC.DELTAV.1',endpoint: str = 'opc.tcp://0.0.0.0:4840'):
         """init the server"""
         self._name=name
-        self._nodename=nodename
+        self._nodename=socket.gethostname()
         self._endpoint=endpoint
+        self.application_uri=name
         self._starttime = datetime.datetime.now(datetime.UTC)
         self._status:int = 0
+        self._base_dir = os.path.dirname(os.path.abspath(__file__))
         self.event = self.Event()
-        self.node = _OPCUANode_(name=self._name,nodename= self._nodename,endpoint=self._endpoint,application_uri=self._name)
+    
+        self.node = _OPCUANode_()
         self.security = _OPCUASecurity_(wrapper=self)
         self.da_manager = _OPCDAManager_(wrapper=self,nodename=self._nodename) 
       
         self.user_manager = _OPCUAUserManager_()  # 强制初始化，避免 None
         self.server = Server(user_manager=self.user_manager)
         self.history_manager=_OPChistoryManager_(wrapper=self)
-        self.server.set_server_name(self.node.name)
-        logging.info(f"_OPCDAWrapper_.init: welcome  ot _DVWrapper_ OPC SERVER {name}, nodename is {nodename},server endpoint is {endpoint}  ")
-        self.server.set_endpoint(self.node.endpoint)  # 设置端点
+        self.server.set_server_name(self._name)
+        logging.info(f"_OPCDAWrapper_.init: welcome  ot _DVWrapper_ OPC SERVER {name}, nodename is {self._nodename},server endpoint is {endpoint}  ")
+        self.server.set_endpoint(self._endpoint)  # 设置端点
         logging.info(f"_OPCDAWrapper_.init: Server type: {type(self.server)}, iserver type: {type(self.server.iserver)},user manager set to custom user manager")
         self.executor_browser = ThreadPoolExecutor(max_workers=2)
         self.executor_opcda = ThreadPoolExecutor(max_workers=2)
         self.executor_opchda = ThreadPoolExecutor(max_workers=2)
-        self._max_time: int = 9999999
+        self._max_time: int = 999999
       
         self._manual_stop: bool = False
     @property
@@ -130,10 +133,10 @@ class _OPCWrapper_:
                  
                 
                
-                "ServerName":  self.node.name,
-                "NodeName":  self.node.nodename,
-                "Application_uri": self.node.application_uri,
-                "Endpoint": self.node.endpoint,
+                "ServerName":  self._name,
+                "NodeName":  self._nodename,
+                "Application_uri": self.application_uri,
+                "Endpoint": self._endpoint,
                 "StartTime":self._starttime.strftime("%Y-%m-%d %H:%M:%S"),
                 "CurrentTime":datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
                 "Status": status.get(self._status,"Unknow"),
@@ -146,13 +149,13 @@ class _OPCWrapper_:
     async def setup_opc_ua_server(self):
         self._status = 2
         await self.server.init()
-        uri = self.node.application_uri
+        uri = self.application_uri
         self.node.idx = await self.server.register_namespace(uri)
         await self.server.set_application_uri(uri)
         logging.debug(f"_OPCDAWrapper_.setup_opc_ua_server:Registered namespace index: {self.node.idx}")
         objects = self.server.nodes.objects
-        self.node.da_folder = await objects.add_folder(self.node.idx, self.node.name)  
-        logging.debug(f"_OPCDAWrapper_.setup_opc_ua_server:add foulder to self.node.da_folder: {self.node.idx}: {self.node.name}")
+        self.node.da_folder = await objects.add_folder(self.node.idx, self._name)  
+        logging.debug(f"_OPCDAWrapper_.setup_opc_ua_server:add foulder to self.node.da_folder: {self.node.idx}: {self._name}")
       
         self.server.iserver.history_manager = self.history_manager
         
@@ -209,7 +212,7 @@ class _OPCWrapper_:
 
         self.node.parameters_folder = await self.node.da_folder.add_folder(self.node.idx, "Parameters and Methods")  
         self.node.parameters_nodes['PARA1']=await self.node.parameters_folder.add_variable(
-            self.node.idx, "OPC wrapper Max Running time (s)", self.max_time, ua.VariantType.Int64
+            self.node.idx, "OPC wrapper Max Running time (hours)", self.max_time, ua.VariantType.Int64
         )
         await self.node.parameters_nodes['PARA1'].set_writable()
         self.node.parameters_nodes['PARA2']=await self.node.parameters_folder.add_variable(
@@ -266,10 +269,25 @@ class _OPCWrapper_:
         
         # 添加方法并设置权限
         self.node.methods_nodes = {
+
+            "add_item": await self.node.parameters_folder.add_method(  
+                self.node.idx, "add_item", self.da_manager.update_item,
+                [ua.VariantType.String,ua.VariantType.Int32],  [ua.VariantType.Boolean]  # 返回值类型
+            ),
+
             "write_items": await self.node.parameters_folder.add_method(
                 self.node.idx, "write_items",  self.da_manager.write_items,
                 [ua.VariantType.Variant,ua.VariantType.String], [ua.VariantType.Boolean]
             ),
+
+            "update_parameters_from_json": await self.node.parameters_folder.add_method(
+                    self.node.idx,
+                    "update_parameters_from_json",
+                    self.update_parameters_from_json,
+                    [ua.VariantType.ByteString],
+                    [ua.VariantType.Boolean]
+                ),
+
             "add_client_cert": await self.node.parameters_folder.add_method(
                 self.node.idx, "add_client_cert", self.security.add_client_certificate,
                 [ua.VariantType.ByteString], [ua.VariantType.Boolean]
@@ -309,12 +327,16 @@ class _OPCWrapper_:
                 [], [ua.VariantType.String]
             ),
 
-
-            "add_item": await self.node.parameters_folder.add_method(  
-                self.node.idx, "add_item", self.da_manager.update_item,
-                [ua.VariantType.String,ua.VariantType.Int32],  [ua.VariantType.Boolean]  # 返回值类型
+            "get_server_information": await self.node.parameters_folder.add_method(
+                self.node.idx, "get_server_information", self.get_server_details,
+                [], [ua.VariantType.String]
             ),
 
+             "read_log_file": await self.node.parameters_folder.add_method(
+                self.node.idx, "read_log_file", self.read_log_file,
+                [], [ua.VariantType.String]
+            ),
+          
             "QueryEventHistory": await self.node.events_node.add_method(
                     self.node.idx,
                     "QueryEventHistory",
@@ -323,21 +345,65 @@ class _OPCWrapper_:
                     [ua.VariantType.String]   # Output: JSON string of events
                 ),
 
-             "ReadRawHistory": await self.node.historian_node.add_method(
+             "SyncReadRaw": await self.node.historian_node.add_method(
                     self.node.idx,
-                    "ReadRawHistory",
+                    "SyncReadRaw",
                     self.history_manager.read_raw_history,
                     [ua.VariantType.String],  # Input: JSON string for filters
                     [ua.VariantType.String]   # Output: JSON string of events
                 ),
 
-            "update_parameters_from_json": await self.node.parameters_folder.add_method(
+            "ReadRawHistoryCSV": await self.node.historian_node.add_method(
                     self.node.idx,
-                    "update_parameters_from_json",
-                    self.update_parameters_from_json,
-                    [ua.VariantType.ByteString],
-                    [ua.VariantType.Boolean]
+                    "ReadRawHistoryCSV",
+                    self.history_manager.read_raw_history_csv,
+                    [ua.VariantType.String],  # Input: JSON string for filters
+                    [ua.VariantType.String]   # Output: JSON string of events
+                ),
+            "SyncReadProcessed": await self.node.historian_node.add_method(
+                    self.node.idx,
+                    "SyuncReadProcessed",
+                    self.history_manager.read_history_processed,
+                    [ua.VariantType.String],  # Input: JSON string for filters
+                    [ua.VariantType.String]   # Output: JSON string of events
+                ),
+            "SyncReadAttribute": await self.node.historian_node.add_method(
+                    self.node.idx,
+                    "SyncReadAttribute",
+                    self.history_manager.sync_read_history_data_attributes,
+                    [ua.VariantType.String],  # Input: JSON string for filters
+                    [ua.VariantType.String]   # Output: JSON string of events
+                ),
+            "GetItemAttributes": await self.node.historian_node.add_method(
+                    self.node.idx,
+                    "GetItemAttributes",
+                    self.history_manager.get_history_attributesid,
+                    [],  # Input: JSON string for filters
+                    [ua.VariantType.String]   # Output: JSON string of events
+                ),
+            "GetHistoryItems": await self.node.historian_node.add_method(
+                    self.node.idx,
+                    "GetHistoryItems",
+                    self.history_manager.get_history_items,
+                    [],  # Input: JSON string for filters
+                    [ua.VariantType.String]   # Output: JSON string of events
+                ),
+            "ValidateHistoryItems": await self.node.historian_node.add_method(
+                    self.node.idx,
+                    "ValidateHistoryItems",
+                    self.history_manager.validate_history_items,
+                    [ua.VariantType.String],  # Input: JSON string for filters
+                    [ua.VariantType.String]   # Output: JSON string of events
+                ),
+                "GetHistoryAggregates": await self.node.historian_node.add_method(
+                    self.node.idx,
+                    "GetHistoryAggregates",
+                    self.history_manager.get_history_aggregates,
+                    [],  # Input: JSON string for filters
+                    [ua.VariantType.String]   # Output: JSON string of events
                 )
+
+          
 
 
         }
@@ -462,8 +528,85 @@ class _OPCWrapper_:
                     setattr(self, group, value)
                     new_value = getattr(self, group)
                     logging.info(f"System paramters changed: Updated {group}: old value ={old_value},new valuee={new_value}")
+    async def update_parameters_from_json(self, parent, json_data_variant) -> list:
+        userrole = await self.security._get_current_userrole()
+        if not self.user_manager.check_method_permission(50, userrole):
+            logging.warning(f"_OPCDAWrapper_.update_parameters_from_json: Unauthorized attempt to update parameters")
+            await self.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+            await self.node.last_error_desc.write_value("Unauthorized attempt to update parameters")
+            raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
+        try:
+            json_data = json_data_variant.Value.decode('utf-8')
+            config = json.loads(json_data)
+            logging.debug(f"_OPCDAWrapper_.update_parameters_from_json: Received config: {json.dumps(config, indent=2)}")
+            if not isinstance(config, dict):
+                logging.error("_OPCDAWrapper_.update_parameters_from_json: Invalid config format, expected a dictionary")
+                await self.node.last_error_desc.write_value("Invalid config format, expected a dictionary")
+                return [ua.Variant(False, ua.VariantType.Boolean)]
+            self._update_from_json(config)
+            logging.info("_OPCDAWrapper_.update_parameters_from_json: Successfully updated parameters from JSON")
+            return [ua.Variant(True, ua.VariantType.Boolean)]
+        except json.JSONDecodeError as e:
+            logging.error(f"_OPCDAWrapper_.update_parameters_from_json: Invalid JSON format: {str(e)}")
+            await self.node.last_error_desc.write_value(f"Invalid JSON format: {str(e)}")
+            return [ua.Variant(False, ua.VariantType.Boolean)]
+        except Exception as e:
+            logging.error(f"_OPCDAWrapper_.update_parameters_from_json: Error processing JSON: {str(e)}")
+            await self.node.last_error_desc.write_value(f"Error processing JSON: {str(e)}")
+            return [ua.Variant(False, ua.VariantType.Boolean)]
 
+    async def read_log_file(self, parent) -> list:
+        """
+        OPC UA Method: Read the contents of opcuuaserver.log file.
+        Returns:
+            [String]: Contents of the log file or error message.
+        """
+        userrole = await self.security._get_current_userrole()
+        if not self.user_manager.check_method_permission(50, userrole):
+            logging.warning(f"_OPCDAWrapper_.read_log_file: Unauthorized attempt to read log file")
+            await self.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+            await self.node.last_error_desc.write_value("Unauthorized attempt to read log file")
+            raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
+        try:
+            log_file = os.path.join(self._base_dir, "logs", "opcuuaserver.log")
+            if not os.path.exists(log_file):
+                logging.error(f"_OPCDAWrapper_.read_log_file: Log file not found at {log_file}")
+                await self.node.last_error_desc.write_value(f"Log file not found at {log_file}")
+                return [ua.Variant("Log file not found", ua.VariantType.String)]
+            with open(log_file, 'r', encoding='utf-8') as f:
+                log_content = f.read()
+            logging.info("_OPCDAWrapper_.read_log_file: Successfully read log file")
+            return [ua.Variant(log_content, ua.VariantType.String)]
+        except Exception as e:
+            logging.error(f"_OPCDAWrapper_.read_log_file: Error reading log file: {str(e)}")
+            await self.node.last_error_desc.write_value(f"Error reading log file: {str(e)}")
+            return [ua.Variant(f"Error reading log file: {str(e)}", ua.VariantType.String)]
+    async def get_server_details(self, parent) -> list:
+  
+        userrole = await self.security._get_current_userrole()
+        if not self.user_manager.check_method_permission(50, userrole):
+            logging.warning(f"_OPCDAWrapper_.update_parameters_from_json: Unauthorized attempt to update parameters")
+            await self.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+            await self.node.last_error_desc.write_value("Unauthorized attempt to update parameters")
+            raise ua.UaStatusCodeError(ua.StatusCodes.BadUserAccessDenied)
 
+        try:
+            # Decode JSON data from ByteString
+          
+            # Update parameters using existing _update_from_json method
+            server_details=await self.GetServerStatus()
+            json_output = json.dumps(server_details, ensure_ascii=False)
+            logging.debug("_OPCDAWrapper_.get_server_details: Successfully invoe GetServerStatus")
+            return [ua.Variant(json_output, ua.VariantType.String)]
+
+        except json.JSONDecodeError as e:
+            logging.error(f"_OPCDAWrapper_.get_server_details: error : {str(e)}")
+            await self.node.last_error_desc.write_value(f"Invalid JSON format: {str(e)}")
+            return [ua.Variant("", ua.VariantType.String)]
+        except Exception as e:
+            logging.error(f"_OPCDAWrapper_.get_server_details: Error processing JSON: {str(e)}")
+            await self.node.last_error_desc.write_value(f"Error processing JSON: {str(e)}")
+            return [ua.Variant("", ua.VariantType.String)]
     async def update_parameters_from_json(self, parent, json_data_variant) -> list:
         """
         OPC UA Method: Update server parameters from a JSON string.
@@ -510,7 +653,7 @@ class _OPCWrapper_:
                 update_task=None
                 event_update_task=None
                 if self.event.restart.is_set():
-                     self.__init__(name=self._name,nodename=self._nodename,endpoint=self._endpoint)
+                     self.__init__(name=self._name,endpoint=self._endpoint)
                      self.event.restart.clear()
                 
                 self.event.running.set()  

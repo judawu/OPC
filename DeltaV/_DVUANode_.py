@@ -2,11 +2,11 @@ from typing import Dict
 import logging
 from asyncua import ua
 class _OPCUANode_:
-        def __init__(self,name:str= 'OPCUA Server', nodename:str ='localhost',endpoint: str = 'opc.tcp://0.0.0.0:4840',application_uri:str='OPC.DELTAV.1'):
-            self.endpoint = endpoint   
-            self.name = name
-            self.nodename = nodename
-            self.application_uri = application_uri
+        def __init__(self):
+          
+           
+          
+           
             self.idx = None
             self.da_folder = None
             self.cert_node = None
