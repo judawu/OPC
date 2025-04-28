@@ -44,11 +44,7 @@ class _OPCDAManager_:
                     self.callback.data[path] = (value, quality, timestamp)
                     print(f"CustomDAManager.custom_callback:Poll/Subscribe: {path} = {value}, Quality={quality}, Timestamp={timestamp}")
                     #logging.debug(f"CustomDAManager.custom_callback: {path} = {value}, Quality={quality}, Timestamp={timestamp}")
-        async def append_items(self,items: List[str]):
-             for item in items:
-                  if item not in self.items:
-                       self.items.append(item)
-             logging.debug(f"CustomDAManager.init_load_item completed")
+   
         async def remove_items(self,items: List[str]):
              for item in items:
                 if item in self.items:
@@ -251,7 +247,7 @@ class _OPCDAManager_:
             structure = structure if structure is not None else self.structure
             base_path = base_path if base_path is not None else self.path
             logging.debug(f"CustomDAManager.create_structure:Creating folder structure under {parent_node} with base_path={base_path}, structure={structure}")
-            node =parent_node
+          
             for key, value in structure.items():
                 
                 path = f"{base_path}.{key}" if base_path else key                                 
@@ -357,9 +353,8 @@ class _OPCDAManager_:
             else:                 
                 last_values = {}
                 logging.debug(f"CustomDAManager.add_items: try to  add items node for {items} at {base_path}...")
-
-                await self.async_poll(items, interval=1, max_time=3.0)
-                
+              
+                await self.async_poll(items, interval=1, max_time=float(items_number))
                 
 
                 for item in items: 
@@ -761,8 +756,10 @@ class _OPCDAManager_:
         async def _process_json_structure(self, structure: Dict, base_path: str):
             
                 try:
+                    
                     for key, value in structure.items():
                         # 处理当前路径
+                        
                         current_path = f"{base_path}.{key}" if base_path else key
                         
                         # 处理 value
@@ -774,7 +771,7 @@ class _OPCDAManager_:
                         elif isinstance(value, dict):
                             # 如果 value 是字典，继续递归
                             if value:  # 仅对非空字典递归
-                                await self._process_json_structure(value, current_path)
+                                await self._process_json_structure(structure=value, base_path=current_path)
                 except Exception as e:
                         logging.error(f"CustomDAManage._process_json_structure: Failed at {base_path}: {str(e)}")
                         raise  # 或者根据需求决定是否抛出                                           
@@ -834,3 +831,120 @@ class _OPCDAManager_:
                 logging.error(f"CustomDAManage.export_nodes_to_json: Error exporting nodes: {str(e)}")
                 await self._wrapper.node.last_error_desc.write_value(f"Error exporting nodes: {str(e)}")
                 raise
+        
+        def extract_items_from_json(self, json_structure: Dict) -> List[str]:
+            """
+            Recursively extracts all item paths from a JSON structure.
+
+            Args:
+                json_structure (Dict): JSON structure containing keys with item lists or nested dictionaries.
+
+            Returns:
+                List[str]: List of item paths extracted from the JSON.
+            """
+            items = []
+            try:
+                for key, value in json_structure.items():
+                    if isinstance(value, list):
+                        for item in value:
+                            if isinstance(item, str):
+                                items.append(item)
+                            else:
+                                logging.warning(f"CustomDAManager.extract_items_from_json: Invalid item in JSON list for key {key}: {item}")
+                    elif isinstance(value, dict):
+                        items.extend(self.extract_items_from_json(value))
+            except Exception as e:
+                logging.error(f"CustomDAManager.extract_items_from_json: Error extracting items from JSON: {str(e)}")
+            return items
+
+        async def batch_control_nodes(self, batch_start: str, json_data):
+            """
+            Monitors an OPC DA item and dynamically manages nodes based on its value.
+            Calls add_nodes_from_json when value is 1, remove_items when value is 0.
+            Items to remove are extracted from the provided JSON data.
+
+            Args:
+                batch_start (str): OPC DA item path to monitor.
+                json_data (str): JSON string for add_nodes_from_json and to extract items for removal.
+            """
+            logging.debug(f"CustomDAManager.batch_control_nodes: Starting monitoring for item {batch_start}")
+
+            # Validate batch_start item path
+            if not isinstance(batch_start, str) or not batch_start.strip():
+                logging.error(f"CustomDAManager.batch_control_nodes: Invalid batch_start item path: {batch_start}")
+                return
+
+            # Parse JSON to extract items for removal
+          
+
+            # Ensure item is subscribed
+            if batch_start not in self.items:
+                self.items.append(batch_start)
+                logging.debug(f"CustomDAManager.batch_control_nodes: Added {batch_start} to subscription list")
+                # Trigger subscription update and wait for initial data
+                await self.async_poll([batch_start], interval=1.0, max_time=3.0)
+                # Wait briefly to ensure subscription is active
+                start_time = time.time()
+                while time.time() - start_time < 5.0:
+                    if self.callback.get_data(batch_start):
+                        break
+                    await asyncio.sleep(0.5)
+                else:
+                    logging.warning(f"CustomDAManager.batch_control_nodes: No initial data for {batch_start} after subscription")
+
+            last_value = None
+            while not self._wrapper.event.shutdown.is_set():
+                try:
+                    data = self.callback.get_data(batch_start)
+                    if data and data[1] > 127:  # Check for good quality
+                        value, quality, _ = data
+                        # Convert value to int for comparison
+                        try:
+                            current_value = int(value) 
+                        except (ValueError, TypeError):
+                            logging.warning(f"CustomDAManager.batch_control_nodes: Invalid value type for {batch_start}: {value}")
+                            await asyncio.sleep(1.0)
+                            continue
+
+                        if current_value != last_value:
+                            if current_value == 1:
+                             
+                                try:
+                                    asyncio.create_task(self._process_json_structure(json_data, ""))
+                                  
+                                except Exception as e:
+                                    logging.error(f"CustomDAManager.batch_control_nodes: Error adding nodes for {batch_start}: {str(e)}")
+                            elif current_value == 0:
+                               
+
+                               
+                                try:
+            
+                                    items_to_remove = self.extract_items_from_json(json_data)
+                                    logging.debug(f"CustomDAManager.batch_control_nodes: Extracted items to remove: {items_to_remove}")
+                                    if items_to_remove:
+                                        await self.remove_items(items_to_remove)
+                                        logging.debug(f"CustomDAManager.batch_control_nodes: Successfully removed items {items_to_remove}")
+                                        
+                                    else:
+                                        logging.debug(f"CustomDAManager.batch_control_nodes: No items to remove for {batch_start}")
+                                except json.JSONDecodeError as e:
+                                    logging.error(f"CustomDAManager.batch_control_nodes: Invalid JSON format: {str(e)}")
+                                    return
+                                except Exception as e:
+                                    logging.error(f"CustomDAManager.batch_control_nodes: Error removing items for {batch_start}: {str(e)}")
+                                    return
+                                 
+                                
+                                    
+                            last_value = current_value
+                    else:
+                        logging.warning(f"CustomDAManager.batch_control_nodes: No valid data for {batch_start}")
+                    
+                    await asyncio.sleep(2.0)  # Check every second
+                except Exception as e:
+                    logging.error(f"CustomDAManager.batch_control_nodes: Error monitoring {batch_start}: {str(e)}")
+                    await asyncio.sleep(2.0)
+            
+            logging.debug(f"CustomDAManager.batch_control_nodes: Stopped monitoring {batch_start}")
+                

@@ -21,10 +21,9 @@ async def DVOPCUAsever(max_time: Optional[float] = None, max_items: Optional[int
         "V1-IO/AI1_SCI1.EU100",
         "V1-IO/DO1_NA_PV.CV",
         "V1-AI-1/FS_CTRL1/MOD_DESC.CV",
-        "V1-TIC-VSL/PID1/MODE.TARGET",
+        "V1-XIC-1/PID1/MODE.TARGET",
         "V1-AIC-DO/HI_ALM.CUALM",
-        "V1-TIC-JKT/HEAT_OUT_D.CV"
-     
+        "V1-TIC-JKT/HEAT_OUT_D.CV"    
         ]
 
         diagnostics_items= [
@@ -41,7 +40,7 @@ async def DVOPCUAsever(max_time: Optional[float] = None, max_items: Optional[int
         while True:
             wrapper.da_manager._max_items=max_items
           
-            await wrapper.da_manager.append_items(items)      
+            
             start_task = asyncio.create_task(wrapper.start())   
             # 初始添加节点
 
@@ -52,21 +51,20 @@ async def DVOPCUAsever(max_time: Optional[float] = None, max_items: Optional[int
             print(f"_OPCDAWrapper_.main: add simulate items {items} ")
             await wrapper.da_manager.add_items(simulate_items, "MODULES.AREA_V1")
             await asyncio.sleep(5)
-            await wrapper.da_manager.add_items(diagnostics_items, "DIAGNOSTICS")
+            await wrapper.da_manager.add_items(diagnostics_items, f"DIAGNOSTICS.Physical Network.Control Network.{wrapper._nodename}")
             await asyncio.sleep(5)
             # 示例：动态调用 update_node
-            new_item = await wrapper.da_manager.update_node("MODULES.AREA_V1.V1-EM.V1-AIC-DO.FS_CTRL1.IN_SCALE.EU100")
+            new_item = await wrapper.da_manager.update_node("MODULES.AREA_V2.V2-EM.V2-AIC-DO.FS_CTRL1.IN_SCALE.EU100")
             print(f"_OPCDAWrapper_.main: Added new item: {new_item}")
-            await asyncio.sleep(10)
-            
+            await asyncio.sleep(5)          
             # 示例：动态调用 broswe_folder
-            await wrapper.da_manager.broswe_folder(base_path="MODULES.AREA_V1.V1-EM.V1-AIC-DO.FS_CTRL1.IN_SCALE")
-            print("_OPCDAWrapper_.main: Browsed and updated structure under MODULES.AREA_V1.V1-EM.V1-AIC-DO.FS_CTRL1.IN_SCALE")
-            await asyncio.sleep(30)
+            await wrapper.da_manager.broswe_folder(base_path=f"DIAGNOSTICS.Physical Network.Control Network.{wrapper._nodename}")
+            print(f"_OPCDAWrapper_.main: Browsed and updated structure under DIAGNOSTICS.Physical Network.Control Network.{wrapper._nodename}")
+            await asyncio.sleep(5)
             await wrapper.da_manager.remove_items(simulate_items)
             print("_OPCDAWrapper_.main: Remove items from subcrible")
             # Example: Call update_parameters_from_json
-            await asyncio.sleep(30)
+            await asyncio.sleep(5)
             sample_config = {
 
            
@@ -79,7 +77,7 @@ async def DVOPCUAsever(max_time: Optional[float] = None, max_items: Optional[int
             
                 },
                 "history_manager": {
-                    "_event_update_rate": 3,
+                    "_event_update_rate": 5,
                     "_retention_period": {"days": 1} , # Will be converted to timedelta
                     "_period_event_filters" : {
                                     "Category": ["PROCESS"],
@@ -101,13 +99,287 @@ async def DVOPCUAsever(max_time: Optional[float] = None, max_items: Optional[int
             print(f"_OPCDAWrapper_.main: Updated parameters from JSON, result: {result[0].Value}")
     
             #等待手动停止或超时
-        
-            
-          
+            await asyncio.sleep(5)
+            print("_OPCDAWrapper_.main: auto load task for V2")
+            await wrapper.da_manager.add_items(["V2-COMMON/BATCH_START.CV"], "MODULES.AREA_V2")
+            alarm_config = {
+                            "AREA_V2.ALARMS.CUALM":[
+                            "V2-AI-1/HI_ALM.CUALM",
+                            "V2-AI-1/HI_HI_ALM.CUALM",
+                            "V2-AI-1/LO_ALM.CUALM",
+                            "V2-AI-1/LO_LO_ALM.CUALM",
+                            "V2-AI-1/PVBAD_ALM.CUALM",
+                            "V2-AI-2/HI_ALM.CUALM",
+                            "V2-AI-2/HI_HI_ALM.CUALM",
+                            "V2-AI-2/LO_ALM.CUALM",
+                            "V2-AI-2/LO_LO_ALM.CUALM",
+                            "V2-AI-2/PVBAD_ALM.CUALM",
+                            "V2-AI-3/HI_ALM.CUALM",
+                            "V2-AI-3/HI_HI_ALM.CUALM",
+                            "V2-AI-3/LO_ALM.CUALM",
+                            "V2-AI-3/LO_LO_ALM.CUALM",
+                            "V2-AI-3/PVBAD_ALM.CUALM",
+                            "V2-AI-4/HI_ALM.CUALM",
+                            "V2-AI-4/HI_HI_ALM.CUALM",
+                            "V2-AI-4/LO_ALM.CUALM",
+                            "V2-AI-4/LO_LO_ALM.CUALM",
+                            "V2-AI-4/PVBAD_ALM.CUALM",
+                            "V2-AI-5/HI_ALM.CUALM",
+                            "V2-AI-5/HI_HI_ALM.CUALM",
+                            "V2-AI-5/LO_ALM.CUALM",
+                            "V2-AI-5/LO_LO_ALM.CUALM",
+                            "V2-AI-5/PVBAD_ALM.CUALM",
+                            "V2-AI-6/HI_ALM.CUALM",
+                            "V2-AI-6/HI_HI_ALM.CUALM",
+                            "V2-AI-6/LO_ALM.CUALM",
+                            "V2-AI-6/LO_LO_ALM.CUALM",
+                            "V2-AI-6/PVBAD_ALM.CUALM",
+                            "V2-AI-7/HI_ALM.CUALM",
+                            "V2-AI-7/HI_HI_ALM.CUALM",
+                            "V2-AI-7/LO_ALM.CUALM",
+                            "V2-AI-7/LO_LO_ALM.CUALM",
+                            "V2-AI-7/PVBAD_ALM.CUALM",
+                            "V2-AI-8/HI_ALM.CUALM",
+                            "V2-AI-8/HI_HI_ALM.CUALM",
+                            "V2-AI-8/LO_ALM.CUALM",
+                            "V2-AI-8/LO_LO_ALM.CUALM",
+                            "V2-AI-8/PVBAD_ALM.CUALM",
+                            "V2-AIC-DO/2ND_BAD_ALM.CUALM",
+                            "V2-AIC-DO/2ND_DEV_ALM.CUALM",
+                            "V2-AIC-DO/3RD_BAD_ALM.CUALM",
+                            "V2-AIC-DO/3RD_DEV_ALM.CUALM",
+                            "V2-AIC-DO/DV_HI_ALM.CUALM",
+                            "V2-AIC-DO/DV_LO_ALM.CUALM",
+                            "V2-AIC-DO/HI_ALM.CUALM",
+                            "V2-AIC-DO/HI_HI_ALM.CUALM",
+                            "V2-AIC-DO/INTERLOCK_ALM.CUALM",
+                            "V2-AIC-DO/LO_ALM.CUALM",
+                            "V2-AIC-DO/LO_LO_ALM.CUALM",
+                            "V2-AIC-DO/PVBAD_ALM.CUALM",
+                            "V2-AIC-PH/2ND_BAD_ALM.CUALM",
+                            "V2-AIC-PH/2ND_DEV_ALM.CUALM",
+                            "V2-AIC-PH/3RD_BAD_ALM.CUALM",
+                            "V2-AIC-PH/3RD_DEV_ALM.CUALM",
+                            "V2-AIC-PH/DV_HI_ALM.CUALM",
+                            "V2-AIC-PH/DV_LO_ALM.CUALM",
+                            "V2-AIC-PH/HI_ALM.CUALM",
+                            "V2-AIC-PH/HI_HI_ALM.CUALM",
+                            "V2-AIC-PH/INTERLOCK_ALM.CUALM",
+                            "V2-AIC-PH/LO_ALM.CUALM",
+                            "V2-AIC-PH/LO_LO_ALM.CUALM",
+                            "V2-AIC-PH/PVBAD_ALM.CUALM",
+                            "V2-FIC-1/DV_HI_ALM.CUALM",
+                            "V2-FIC-1/DV_LO_ALM.CUALM",
+                            "V2-FIC-1/HI_ALM.CUALM",
+                            "V2-FIC-1/HI_HI_ALM.CUALM",
+                            "V2-FIC-1/INTERLOCK_ALM.CUALM",
+                            "V2-FIC-1/LO_ALM.CUALM",
+                            "V2-FIC-1/LO_LO_ALM.CUALM",   
+                            "V2-FIC-1/PVBAD_ALM.CUALM",
+                            "V2-FIC-2/DV_HI_ALM.CUALM",
+                            "V2-FIC-2/DV_LO_ALM.CUALM",
+                            "V2-FIC-2/HI_ALM.CUALM",
+                            "V2-FIC-2/HI_HI_ALM.CUALM",
+                            "V2-FIC-2/INTERLOCK_ALM.CUALM",
+                            "V2-FIC-2/LO_ALM.CUALM",
+                            "V2-FIC-2/LO_LO_ALM.CUALM",    
+                            "V2-FIC-2/PVBAD_ALM.CUALM",
+                            "V2-FIC-3/DV_HI_ALM.CUALM",
+                            "V2-FIC-3/DV_LO_ALM.CUALM",
+                            "V2-FIC-3/HI_ALM.CUALM",
+                            "V2-FIC-3/HI_HI_ALM.CUALM",
+                            "V2-FIC-3/INTERLOCK_ALM.CUALM",
+                            "V2-FIC-3/LO_ALM.CUALM",
+                            "V2-FIC-3/LO_LO_ALM.CUALM",     
+                            "V2-FIC-3/PVBAD_ALM.CUALM",
+                            "V2-FIC-4/DV_HI_ALM.CUALM",
+                            "V2-FIC-4/DV_LO_ALM.CUALM",
+                            "V2-FIC-4/HI_ALM.CUALM",
+                            "V2-FIC-4/HI_HI_ALM.CUALM",
+                            "V2-FIC-4/INTERLOCK_ALM.CUALM",
+                            "V2-FIC-4/LO_ALM.CUALM",
+                            "V2-FIC-4/LO_LO_ALM.CUALM",  
+                            "V2-FIC-4/PVBAD_ALM.CUALM",
+                            "V2-FIC-5/DV_HI_ALM.CUALM",
+                            "V2-FIC-5/DV_LO_ALM.CUALM",
+                            "V2-FIC-5/HI_ALM.CUALM",
+                            "V2-FIC-5/HI_HI_ALM.CUALM",
+                            "V2-FIC-5/INTERLOCK_ALM.CUALM",
+                            "V2-FIC-5/LO_ALM.CUALM",
+                            "V2-FIC-5/LO_LO_ALM.CUALM",     
+                            "V2-FIC-5/PVBAD_ALM.CUALM",
+                            "V2-FIC-6/DV_HI_ALM.CUALM",
+                            "V2-FIC-6/DV_LO_ALM.CUALM",
+                            "V2-FIC-6/HI_ALM.CUALM",
+                            "V2-FIC-6/HI_HI_ALM.CUALM",
+                            "V2-FIC-6/INTERLOCK_ALM.CUALM",
+                            "V2-FIC-6/LO_ALM.CUALM",
+                            "V2-FIC-6/LO_LO_ALM.CUALM",   
+                            "V2-FIC-6/PVBAD_ALM.CUALM",
+                            "V2-PI-VSL/HI_ALM.CUALM",
+                            "V2-PI-VSL/HI_HI_ALM.CUALM",
+                            "V2-PI-VSL/LO_ALM.CUALM",
+                            "V2-PI-VSL/LO_LO_ALM.CUALM",
+                            "V2-PI-VSL/PVBAD_ALM.CUALM",
+                            "V2-PI-VSL/SENSOR2_BAD_ALM.CUALM",
+                            "V2-PI-VSL/SENSOR_DEV_ALM.CUALM",
+                            "V2-SIC-1/DOSE_ALM.CUALM",
+                            "V2-SIC-1/DV_HI_ALM.CUALM",
+                            "V2-SIC-1/DV_LO_ALM.CUALM",
+                            "V2-SIC-1/HI_ALM.CUALM",
+                            "V2-SIC-1/HI_HI_ALM.CUALM",
+                            "V2-SIC-1/INTERLOCK_ALM.CUALM",
+                            "V2-SIC-1/LO_ALM.CUALM",
+                            "V2-SIC-1/LO_LO_ALM.CUALM",
+                            "V2-SIC-1/PVBAD_ALM.CUALM",
+                            "V2-SIC-1/TRIP_ALM.CUALM",
+                            "V2-SIC-2/DOSE_ALM.CUALM",
+                            "V2-SIC-2/DV_HI_ALM.CUALM",
+                            "V2-SIC-2/DV_LO_ALM.CUALM",
+                            "V2-SIC-2/HI_ALM.CUALM",
+                            "V2-SIC-2/HI_HI_ALM.CUALM",
+                            "V2-SIC-2/INTERLOCK_ALM.CUALM",
+                            "V2-SIC-2/LO_ALM.CUALM",
+                            "V2-SIC-2/LO_LO_ALM.CUALM",
+                            "V2-SIC-2/PVBAD_ALM.CUALM",
+                            "V2-SIC-2/TRIP_ALM.CUALM",
+                            "V2-SIC-3/DOSE_ALM.CUALM",
+                            "V2-SIC-3/DV_HI_ALM.CUALM",
+                            "V2-SIC-3/DV_LO_ALM.CUALM",
+                            "V2-SIC-3/HI_ALM.CUALM",
+                            "V2-SIC-3/HI_HI_ALM.CUALM",
+                            "V2-SIC-3/INTERLOCK_ALM.CUALM",
+                            "V2-SIC-3/LO_ALM.CUALM",
+                            "V2-SIC-3/LO_LO_ALM.CUALM",
+                            "V2-SIC-3/PVBAD_ALM.CUALM",
+                            "V2-SIC-3/TRIP_ALM.CUALM",
+                            "V2-SIC-4/DOSE_ALM.CUALM",
+                            "V2-SIC-4/DV_HI_ALM.CUALM",
+                            "V2-SIC-4/DV_LO_ALM.CUALM",
+                            "V2-SIC-4/HI_ALM.CUALM",
+                            "V2-SIC-4/HI_HI_ALM.CUALM",
+                            "V2-SIC-4/INTERLOCK_ALM.CUALM",
+                            "V2-SIC-4/LO_ALM.CUALM",
+                            "V2-SIC-4/LO_LO_ALM.CUALM",
+                            "V2-SIC-4/PVBAD_ALM.CUALM",
+                            "V2-SIC-4/TRIP_ALM.CUALM",
+                            "V2-SIC-5/DOSE_ALM.CUALM",
+                            "V2-SIC-5/DV_HI_ALM.CUALM",
+                            "V2-SIC-5/DV_LO_ALM.CUALM",
+                            "V2-SIC-5/HI_ALM.CUALM",
+                            "V2-SIC-5/HI_HI_ALM.CUALM",
+                            "V2-SIC-5/INTERLOCK_ALM.CUALM",
+                            "V2-SIC-5/LO_ALM.CUALM",
+                            "V2-SIC-5/LO_LO_ALM.CUALM",
+                            "V2-SIC-5/PVBAD_ALM.CUALM",
+                            "V2-SIC-5/TRIP_ALM.CUALM",
+                            "V2-SIC-6/DOSE_ALM.CUALM",
+                            "V2-SIC-6/DV_HI_ALM.CUALM",
+                            "V2-SIC-6/DV_LO_ALM.CUALM",
+                            "V2-SIC-6/HI_ALM.CUALM",
+                            "V2-SIC-6/HI_HI_ALM.CUALM",
+                            "V2-SIC-6/INTERLOCK_ALM.CUALM",
+                            "V2-SIC-6/LO_ALM.CUALM",
+                            "V2-SIC-6/LO_LO_ALM.CUALM",
+                            "V2-SIC-6/PVBAD_ALM.CUALM",
+                            "V2-SIC-6/TRIP_ALM.CUALM",
+                            "V2-SIC-AGIT/DV_HI_ALM.CUALM",
+                            "V2-SIC-AGIT/DV_LO_ALM.CUALM",
+                            "V2-SIC-AGIT/HI_ALM.CUALM",
+                            "V2-SIC-AGIT/HI_HI_ALM.CUALM",
+                            "V2-SIC-AGIT/INTERLOCK_ALM.CUALM",
+                            "V2-SIC-AGIT/LO_ALM.CUALM",
+                            "V2-SIC-AGIT/LO_LO_ALM.CUALM",
+                            "V2-SIC-AGIT/PVBAD_ALM.CUALM",
+                            "V2-SIC-AGIT/TRIP_ALM.CUALM",
+                            "V2-TIC-JKT/DV_HI_ALM.CUALM",
+                            "V2-TIC-JKT/DV_LO_ALM.CUALM",
+                            "V2-TIC-JKT/HI_ALM.CUALM",
+                            "V2-TIC-JKT/HI_HI_ALM.CUALM",
+                            "V2-TIC-JKT/INTERLOCK_ALM.CUALM",
+                            "V2-TIC-JKT/LO_ALM.CUALM",
+                            "V2-TIC-JKT/LO_LO_ALM.CUALM",
+                            "V2-TIC-JKT/PRB2_BAD_ALM.CUALM",
+                            "V2-TIC-JKT/PRB_DEV_ALM.CUALM",
+                            "V2-TIC-JKT/PVBAD_ALM.CUALM",
+                            "V2-TIC-JKT/TCU_ALM.CUALM",
+                            "V2-TIC-VNT1/DV_HI_ALM.CUALM",
+                            "V2-TIC-VNT1/DV_LO_ALM.CUALM",
+                            "V2-TIC-VNT1/HI_ALM.CUALM",
+                            "V2-TIC-VNT1/HI_HI_ALM.CUALM",
+                            "V2-TIC-VNT1/INTERLOCK_ALM.CUALM",
+                            "V2-TIC-VNT1/LO_ALM.CUALM",
+                            "V2-TIC-VNT1/LO_LO_ALM.CUALM",
+                            "V2-TIC-VNT1/PVBAD_ALM.CUALM",
+                            "V2-TIC-VNT2/DV_HI_ALM.CUALM",
+                            "V2-TIC-VNT2/DV_LO_ALM.CUALM",
+                            "V2-TIC-VNT2/HI_ALM.CUALM",
+                            "V2-TIC-VNT2/HI_HI_ALM.CUALM",
+                            "V2-TIC-VNT2/INTERLOCK_ALM.CUALM",
+                            "V2-TIC-VNT2/LO_ALM.CUALM",
+                            "V2-TIC-VNT2/LO_LO_ALM.CUALM",
+                            "V2-TIC-VNT2/PVBAD_ALM.CUALM",
+                            "V2-TIC-VSL/DV_HI_ALM.CUALM",
+                            "V2-TIC-VSL/DV_LO_ALM.CUALM",
+                            "V2-TIC-VSL/HI_ALM.CUALM",
+                            "V2-TIC-VSL/HI_HI_ALM.CUALM",
+                            "V2-TIC-VSL/INTERLOCK_ALM.CUALM",
+                            "V2-TIC-VSL/LO_ALM.CUALM",
+                            "V2-TIC-VSL/LO_LO_ALM.CUALM",
+                            "V2-TIC-VSL/PRB2_BAD_ALM.CUALM",
+                            "V2-TIC-VSL/PRB_DEV_ALM.CUALM",
+                            "V2-TIC-VSL/PVBAD_ALM.CUALM",
+                            "V2-TIC-VSL/TCU_ALM.CUALM",
+                            "V2-WIC-VSL/DV_HI_ALM.CUALM",
+                            "V2-WIC-VSL/DV_LO_ALM.CUALM",
+                            "V2-WIC-VSL/HI_ALM.CUALM",
+                            "V2-WIC-VSL/HI_HI_ALM.CUALM",
+                            "V2-WIC-VSL/INTERLOCK_ALM.CUALM",
+                            "V2-WIC-VSL/LO_ALM.CUALM",
+                            "V2-WIC-VSL/LO_LO_ALM.CUALM",
+                            "V2-WIC-VSL/PVBAD_ALM.CUALM",
+                            "V2-XIC-1/DV_HI_ALM.CUALM",
+                            "V2-XIC-1/DV_LO_ALM.CUALM",
+                            "V2-XIC-1/HI_ALM.CUALM",
+                            "V2-XIC-1/HI_HI_ALM.CUALM",
+                            "V2-XIC-1/INTERLOCK_ALM.CUALM",
+                            "V2-XIC-1/LO_ALM.CUALM",
+                            "V2-XIC-1/LO_LO_ALM.CUALM",
+                            "V2-XIC-1/PVBAD_ALM.CUALM",
+                            "V2-XIC-2/DV_HI_ALM.CUALM",
+                            "V2-XIC-2/DV_LO_ALM.CUALM",
+                            "V2-XIC-2/HI_ALM.CUALM",
+                            "V2-XIC-2/HI_HI_ALM.CUALM",
+                            "V2-XIC-2/INTERLOCK_ALM.CUALM",
+                            "V2-XIC-2/LO_ALM.CUALM",
+                            "V2-XIC-2/LO_LO_ALM.CUALM",
+                            "V2-XIC-2/PVBAD_ALM.CUALM",
+                            "V2-XIC-3/DV_HI_ALM.CUALM",
+                            "V2-XIC-3/DV_LO_ALM.CUALM",
+                            "V2-XIC-3/HI_ALM.CUALM",
+                            "V2-XIC-3/HI_HI_ALM.CUALM",
+                            "V2-XIC-3/INTERLOCK_ALM.CUALM",
+                            "V2-XIC-3/LO_ALM.CUALM",
+                            "V2-XIC-3/LO_LO_ALM.CUALM",
+                            "V2-XIC-3/PVBAD_ALM.CUALM",
+                            "V2-XIC-4/DV_HI_ALM.CUALM",
+                            "V2-XIC-4/DV_LO_ALM.CUALM",
+                            "V2-XIC-4/HI_ALM.CUALM",
+                            "V2-XIC-4/HI_HI_ALM.CUALM",
+                            "V2-XIC-4/INTERLOCK_ALM.CUALM",
+                            "V2-XIC-4/LO_ALM.CUALM",
+                            "V2-XIC-4/LO_LO_ALM.CUALM",
+                            "V2-XIC-4/PVBAD_ALM.CUALM",
+                            "V2-COMMON/ESTOP_ALM.CUALM"]}
+      
+            batch_cotrol_task=asyncio.create_task(wrapper.da_manager.batch_control_nodes("V2-COMMON/BATCH_START.CV", json_data=alarm_config))
+           
+           
             if max_time :  
-                       
+                await batch_cotrol_task   
                 await asyncio.wait([start_task], timeout=max_time)                  
             else:
+                await batch_cotrol_task
                 await start_task
           
                 
@@ -167,10 +439,52 @@ async def main():
     try:
         license_manager=_DVLicManager_()
         license_manager.run()
-        license_type=license_manager._license_type    
-        if license_type== 100:
+        license_type=license_manager._license_type  
+
+        if license_type== 1:
+            print(f"valid license not found, Running in simulate mode with license")
+            await DVOPCUAsever(max_time=3600.0)
+        elif license_type== 2:
+            print(f"valid license for simluate 4 hours license")
+            await DVOPCUAsever(max_time=14400.0)
+            print(f"Simluate 4 hours treached, stop the service,you can restart the servcie to rerun")
+        elif license_type== 3:
+            print(f"uSE Demo License ,DEMO lCIENSE  SUPPORT A DEMO at least  4 hours demo")
+            rand_time=random.randint(14400., 2592000)
+            await DVOPCUAsever(max_time=rand_time)
+            print(f"Demo license reached, you can restart the servcie to re run the demo")  
+        elif license_type== 5:
+            print(f"Simluate 3 minute test License ")
+            await DVOPCUAsever(max_time=180.0)
+            print(f"Simluate 3  minutes reached, stop the service,you can restart the servcie to rerun")
+        elif license_type== 6:
+            print(f"Simluate 10 minute and max 100 DST test License ")
+            await DVOPCUAsever(max_time=600.0,max_items=100)
+            print(f"Simluate 10 minute max 100 DST  test License,time reached, stop the service,you can restart the servcie to rerun")
+        elif license_type== 7:
+            print(f"Simluate 30 minute and max 500 DST test License ")
+            await DVOPCUAsever(max_time=1800.0,max_items=500)
+            print(f"Simluate 30 minute and max 500 DST time reached,stop the service,you can restart the servcie to rerun")
+        elif license_type== 8:
+            print(f"Simluate 60 minute and max 1000 DST test License ")
+            await DVOPCUAsever(max_time=3600.0,max_items=1000)
+            print(f"Simluate 60 minute and max 1000 DST time reached,stop the service,you can restart the servcie to rerun")
+        elif license_type== 9:
+            print(f"Simluate 1 day and 10000 DST test License ")
+            await DVOPCUAsever(max_time=86400.0,max_items=10000)
+            print(f"Simluate 1 day and 10000 DST  time reached,, stop the service,you can restart the servcie to rerun")
+        elif license_type== 10:
+            print(f"valid license for simluate 1 day license")
+            await DVOPCUAsever(max_time=86400.0)
+            print(f"Simluate 4 hours treached, stop the service,you can restart the servcie to rerun")
+        elif license_type== 69:
+            print(f"Simluate 10 minute and 100 DST test License ")
+            await DVOPCUAsever(max_time=600.0,max_items=100)
+            print(f"Simluate 10 minute or 100 DST  test License ,10 minutesand max 100 itmes reached, stop the service,you can restart the servcie to rerun")
+        elif license_type== 100:
             print(f"you are very lunck to run the servcie for ever")
             await DVOPCUAsever()
+        
         elif license_type== 99:
             print(f"you are run in a 100000 DST license")
             await DVOPCUAsever(max_items=100000)
@@ -186,24 +500,8 @@ async def main():
             await DVOPCUAsever(max_items=2000)
         elif license_type== 93:
             await DVOPCUAsever(max_items=1000)
-        elif license_type== 2:
-            await DVOPCUAsever(max_time=14400.0)
-        elif license_type== 1:
-            print(f"valid license not found, Running in simulate mode with license")
-            await DVOPCUAsever(max_time=3600.0)
-        elif license_type== 5:
-            print(f"Simluate 3 minute test License ")
-            await DVOPCUAsever(max_time=180.0)
-            print(f"Simluate 3 minute test License , 3 minutes reached, stop the service,you can restart the servcie to rerun")
-        elif license_type== 6:
-            print(f"Simluate 10 minute or 100 DST test License ")
-            await DVOPCUAsever(max_time=600.0,max_items=100)
-            print(f"Simluate 10 minute or 100 DST  test License ,10 minutes or  100 itmes reached, stop the service,you can restart the servcie to rerun")
-        elif license_type== 3:
-            print(f"uSE Demo License ,DEMO lCIENSE  SUPPORT A DEMO at least  4 hours demo")
-            rand_time=random.randint(14400., 2592000)
-            await DVOPCUAsever(max_time=rand_time)
-            print(f"Demo license reached, you can restart the servcie to re run the demo")
+    
+      
         elif license_type== 89:
             await DVOPCUAsever(max_time=1138406000.0,max_items=100000)
         elif license_type== 88:

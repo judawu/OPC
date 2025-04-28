@@ -6,6 +6,15 @@ class _DVLicGenerator_:
 # License type dictionary
     def __init__(self):
             self._system_license_type = {
+                "Simluate 1 hour License": 1,
+                "Simluate 4 hour License": 2,
+                 "Demo License": 3,     
+                "Simluate 3 minute test License": 5,
+                "Simluate 10 minute and 100 DST test License": 6,
+                "Simluate 30 minute and 500 DST test License": 7,
+                "Simluate 60 minute and 1000 DST test License": 8,
+                "Simluate 1 day and 10000 DST test License": 9,
+                "Simluate 1 day License": 10,
                 "Perpetual License": 100,
                 "Unlimit 100000 DST License": 99,
                 "Unlimit 50000 DST License": 98,
@@ -14,11 +23,7 @@ class _DVLicGenerator_:
                 "Unlimit 5000 DST License": 95,
                 "Unlimit 3000 DST License": 94,
                 "Unlimit 1000 DST License": 93,
-                "Demo License": 3,
-                "Simluate 4 hour License": 2,
-                "Simluate 1 hour License": 1,
-                "Simluate 3 minute test License": 5,
-                "Simluate 10 minute or 100 DST test License": 6,
+           
                 "Subscription 3 year 100000 DST License": 89,
                 "Subscription 2 year 100000 DST License": 88,
                 "Subscription 1 year 100000 DST License": 87,
@@ -49,9 +54,17 @@ class _DVLicGenerator_:
                 "Subscription 1 year 1000 DST License": 17,
             }
             self.PO_LOOKUP_TABLE = {
-            "PO00000": "Simluate 3 minute test License",
-            "PO00001": "Simluate 10 minute or 100 DST test License",
-            "PO12345": "Perpetual License",
+            "P100000": "Simluate 3 minute test License",
+            
+            "P100001": "Simluate 10 minute and 100 DST test License",
+                 
+            "P100002":  "Simluate 30 minute and 500 DST test License",
+            "P100003":   "Simluate 60 minute and 1000 DST test License",
+            "P100004":   "Simluate 1 day and 10000 DST test License",
+          
+            "P100009" :"Simluate 4 hour License",   
+            "P100010" : "Simluate 1 day License",
+            "PO00000": "Demo License",    
             "PO00002": "Unlimit 100000 DST License",
             "PO00003": "Unlimit 50000 DST License",
             "PO00004": "Unlimit 20000 DST License",
@@ -59,8 +72,7 @@ class _DVLicGenerator_:
             "PO00006":"Unlimit 5000 DST License",
             "PO00007":"Unlimit 3000 DST License",
             "PO00008":"Unlimit 1000 DST License",
-            "PO00009": "Demo License",
-            "PO00010" :"Simluate 4 hour License",    
+       
             "PO00012": "Subscription 3 year 100000 DST License",
             "PO00013":  "Subscription 2 year 100000 DST License",
             "PO00014":  "Subscription 1 year 100000 DST License",
@@ -88,7 +100,8 @@ class _DVLicGenerator_:
             "PO00036": "Subscription 6 month 3000 DST License",
             "PO00037":  "Subscription 3 year 1000 DST License",
             "PO00038": "Subscription 2 year 1000 DST License",
-            "PO00039": "Subscription 1 year 1000 DST License"
+            "PO00039": "Subscription 1 year 1000 DST License",
+            "PO12345": "Perpetual License",
             
     
         }

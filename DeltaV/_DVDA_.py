@@ -347,7 +347,7 @@ class _OPCDA_:
                         if  field in ['TARGET','ACTUAL','UNITS'] :
                             chnanged_item_path=item_path.replace('.', '.A_')
                         else:                     
-                            chnanged_item_path=item_path.replace('.', 'F_')
+                            chnanged_item_path=item_path.replace('.', '.F_')
                         opc_item = group.OPCItems.AddItem(chnanged_item_path, i)
                         if opc_item is None or (opc_item is not None and opc_item.ServerHandle == 0):
                             chnanged_item_path=item_path.replace('.', '.A_')
@@ -410,7 +410,7 @@ class _OPCDA_:
                         if  field in ['TARGET','ACTUAL','UNITS'] :
                             chnanged_item_path=item_path.replace('.', '.A_')
                         else:                     
-                            chnanged_item_path=item_path.replace('.', 'F_')
+                            chnanged_item_path=item_path.replace('.', '.F_')
                         opc_item = group.OPCItems.AddItem(chnanged_item_path, i)
                         if opc_item is None or (opc_item is not None and opc_item.ServerHandle == 0):
                             chnanged_item_path=item_path.replace('.', '.A_')
@@ -508,7 +508,7 @@ class _OPCDA_:
                         if  field in ['TARGET','ACTUAL','UNITS'] :
                             chnanged_item_path=item_path.replace('.', '.A_')
                         else:                     
-                            chnanged_item_path=item_path.replace('.', 'F_')
+                            chnanged_item_path=item_path.replace('.', '.F_')
                         opc_item = group.OPCItems.AddItem(chnanged_item_path, i)
                         if opc_item is None or (opc_item is not None and opc_item.ServerHandle == 0):
                             chnanged_item_path=item_path.replace('.', '.A_')

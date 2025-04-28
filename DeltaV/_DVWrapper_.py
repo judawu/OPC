@@ -705,6 +705,10 @@ class _OPCWrapper_:
                         logging.debug("_OPCDAWrapper_.start: Periodic event update task started")
                         self._status = 1  #set status to running
                         # 主循环，监听事件并支持动态调用
+
+                        
+
+
                         while not self.event.shutdown.is_set():
                             
                             if self.event.restart.is_set() or self._manual_stop or datetime.datetime.now(datetime.UTC) > self._starttime + datetime.timedelta(hours=self._max_time):
