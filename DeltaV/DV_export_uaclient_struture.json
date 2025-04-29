@@ -3,25 +3,25 @@
     "AREA_V1": {
       "V1-EM": {
         "ITEMS": [
-          "V1-AIC-DO/FS_CTRL1/IN_SCALE.EU100"
+          "V1-FIC-1/PID1/IN_SCALE.EU100"
         ]
       },
       "ITEMS": [
         "V1-IO/AI1_SCI1.EU100",
-        "V1-IO/DO1_NA_PV.CV",
-        "V1-AI-1/FS_CTRL1/MOD_DESC.CV",
-        "V1-TIC-VSL/PID1/MODE.TARGET",
-        "V1-AIC-DO/HI_ALM.CUALM",
-        "V1-TIC-JKT/HEAT_OUT_D.CV"
+  
+    
+        "V1-TIC-1/PID1/MODE.TARGET",
+        "V1-FIC-1/HI_ALM.CUALM"
+ 
       ]
     },
     "AREA_V2": {
       "V2-EM": {
-        "V2-AIC-DO": {
+        "V2-FIC-1": {
           "ITEMS": {
             "ITEMS": [
-              "V2-AIC-DO/SP.CV",
-              "V2-AIC-DO/OUT.CV"
+              "V2-AIC-1/SP.CV",
+              "V2-AIC-1/OUT.CV"
             ]
           }
         }
@@ -29,12 +29,12 @@
     },
     "AREA_V3": {
       "V3-EM": {
-        "V3-AIC-PH": {
+        "V3-FIC-1": {
           "ITEMS": {
             "ITEMS": [
-              "V3-AIC-PH/PV.CV",
-              "V3-AIC-PH/SP.CV",
-              "V3-AIC-PH/OUT.CV"
+              "V3-FIC-1/PV.CV",
+              "V3-FIC-1/SP.CV",
+              "V3-FIC-1/OUT.CV"
             ]
           }
         }
