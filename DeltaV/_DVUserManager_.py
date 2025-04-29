@@ -24,7 +24,7 @@ class _OPCUAUserManager_:
         self._cooldown_time = 180           # 重连冷却时间（秒）
         self._monitor_period = 10
         self._user_roles = {
-            "deltavadmin": 0,
+          
             "EMERSON": 1,
             "FINESSE": 1,
             "CONFIGURE": 2,
@@ -37,7 +37,7 @@ class _OPCUAUserManager_:
           
         }
         self._user_passwords = {
-            "deltavadmin": "Fin3ss3!",
+           
             "EMERSON": "DeltaVE1",
             "FINESSE": "TruBioDV01",
             "CONFIGURE": "DeltaVC1",
