@@ -2,8 +2,7 @@
     "MODULES": {
         "AREA_14": {},
         "AREA_A": {},
-        "AREA_AUTOLOAD": {},
-        "AREA_CXXXXX": {},
+     
         "AREA_V1": {},
         "AREA_V10": {},
         "AREA_V11": {},
@@ -13,18 +12,8 @@
         "AREA_V2": {},
         "AREA_V3": {},
         "AREA_V4": {
-            "V4-EM": {
-                "V4-AI-2": {
-                    "FS_CTRL1": {
-                        "ALARM_CTRL": {},
-                        "CAL1": {},
-                        "TRENDING": {},
-                        "AVAILABLE": {},
-                        "INTERNAL_REV": {},
-                        "LNK_PV": {},
-                        "MOD_DESC": {},
-                        "PV": {},
-                        "PV_SCALE": {}
+   
+              
                     }
                 }
             }
@@ -33,9 +22,8 @@
         "AREA_V6": {},
         "AREA_V7": {},
         "AREA_V8": {},
-        "AREA_V9": {},
-        "AREA_VSLXX": {},
-        "PRIMA_BT": {}
+        "AREA_V9": {}
+     
     },
     "IO": {
         "Physical Network": {}
