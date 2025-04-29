@@ -130,7 +130,7 @@ class _OPCUASecurity_:
                 return [ua.Variant(False, ua.VariantType.Boolean)]
 
             # 定义信任证书路径
-            trust_dir = self.trustedcert_dir # 替换为你的信任目录
+            trust_dir = self._trustedcert_dir # 替换为你的信任目录
             if not os.path.exists(trust_dir):
                 os.makedirs(trust_dir, exist_ok=True)
             
@@ -185,7 +185,7 @@ class _OPCUASecurity_:
                     self.security_policies = [SecurityPolicy(), policy_class]
                     for policy in self.security_policies:
                         if policy != SecurityPolicy():
-                            policy.ClientCertificateDir = self.trustedcert_dir
+                            policy.ClientCertificateDir = self._trustedcert_dir
                     
                     logging.debug(f"_OPCDAWrapper_.set_server_policy:Updated security policy to {security_policy}:{'SignAndEncrypt' if sign_and_encrypt else 'Sign'}")
                 

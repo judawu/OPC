@@ -75,8 +75,9 @@ class _OPCWrapper_:
         self.executor_opcda = ThreadPoolExecutor(max_workers=2)
         self.executor_opchda = ThreadPoolExecutor(max_workers=2)
         self._max_time: int = 999999
-      
+        
         self._manual_stop: bool = False
+        self.tasks=[]
     @property
     def max_time(self):
         return self._max_time
@@ -326,6 +327,10 @@ class _OPCWrapper_:
                 self.node.idx, "export_nodes_to_json", self.da_manager.export_nodes_to_json,
                 [], [ua.VariantType.String]
             ),
+            "auto_load_area": await self.node.parameters_folder.add_method(
+                self.node.idx, "auto_load_area", self.da_manager.auto_load_areas,
+                [ua.VariantType.String], [ua.VariantType.Boolean]  #
+            ),
 
             "get_server_information": await self.node.parameters_folder.add_method(
                 self.node.idx, "get_server_information", self.get_server_details,
@@ -430,7 +435,7 @@ class _OPCWrapper_:
         self.event.restart.clear()
         self.event.broswe_opcda_struture.clear()
         self._status = 7  
-
+          
        # 清理匿名会话
         if self.user_manager and self.user_manager.anonymous_sessions:
             for client_addr in list(self.user_manager.anonymous_sessions.keys()):
@@ -691,6 +696,7 @@ class _OPCWrapper_:
                         self._status = 4
                         # 持续运行的监控任务
                         monitor_task = asyncio.create_task(self.user_manager.monitor_anonymous_sessions(self.server.iserver))
+                        self.tasks.append(monitor_task)
                         logging.debug("_OPCDAWrapper_.start: Monitor anonymous sessions task started")
 
                         logging.debug("Wait 10 seconds for update_ua_nodes task...")
@@ -698,15 +704,17 @@ class _OPCWrapper_:
                         # 启动周期性更新任务
                         self._status = 5
                         update_task = asyncio.create_task(self.da_manager.update_ua_nodes())
+                        self.tasks.append(update_task)
                         logging.debug("_OPCDAWrapper_.start: Periodic update task started")
                         await asyncio.sleep(1)
                         self._status = 6
                         event_update_task = asyncio.create_task( self.history_manager.periodic_event_update())
+                        self.tasks.append(event_update_task)
                         logging.debug("_OPCDAWrapper_.start: Periodic event update task started")
                         self._status = 1  #set status to running
                         # 主循环，监听事件并支持动态调用
 
-                        
+                      
 
 
                         while not self.event.shutdown.is_set():
@@ -715,9 +723,9 @@ class _OPCWrapper_:
                                 logging.debug("_OPCDAWrapper_.start: Restart event or systme max time reached or manual stop flag set detected, shutting down...")
                                 self._status = 8 
                                 self.event.shutdown.set()
-                                monitor_task.cancel()
-                                update_task.cancel()
-                                event_update_task.cancel()
+                                for task in self.tasks:
+                                    task.cancel()
+                               
                                 break
                             await asyncio.sleep(1)  # 短暂休眠，避免 CPU 占用过高
                     
@@ -725,14 +733,17 @@ class _OPCWrapper_:
                             
 
                         # 等待任务完成
-                        try:
-                            await asyncio.gather(
-                                deltavbrowser_task, deltavdata_task, monitor_task, update_task, event_update_task,
-                                return_exceptions=True
+                       
+                        results=await asyncio.gather(
+                                deltavbrowser_task, deltavdata_task, *(self.tasks), return_exceptions=True
                             )
-                        except asyncio.CancelledError:
-                            logging.debug("_OPCDAWrapper_.start: Handled CancelledError during task shutdown")
-                            pass
+                        for result in results:
+                                if isinstance(result, Exception):
+                                        logging.error(f"Task failed: {result}")
+                                else:
+                                        logging.debug(f"Task result: {result}")
+
+                       
                     except asyncio.CancelledError:
                             logging.debug("_OPCDAWrapper_.start: Handled CancelledError in finally block")
                             pass            
@@ -743,28 +754,17 @@ class _OPCWrapper_:
                         self.event.running.clear()
                         self.event.shutdown.set()
                        # Avoid redundant cancellation
-                        if monitor_task and not monitor_task.done():
-                        
-                            monitor_task.cancel()
-                            logging.debug("_OPCDAWrapper_.start: Cancelled monitor_task")
-                        if update_task and not update_task.done():
-                            update_task.cancel()
-                            logging.debug("_OPCDAWrapper_.start: Cancelled update_task")
-                        if event_update_task and not event_update_task.done():
-                            event_update_task.cancel()
-                            logging.debug("_OPCDAWrapper_.start: Cancelled event_update_task")
-                        # Wait for tasks to complete or cancel
-                        try:
-                            await asyncio.gather(
-                                deltavbrowser_task, deltavdata_task, monitor_task, update_task, event_update_task,
-                                return_exceptions=True
-                            )
-                        except asyncio.CancelledError:
-                            logging.debug("_OPCDAWrapper_.start: Handled CancelledError in finally block")
-                            pass
-                        except: 
-                            pass
-                        logging.debug(f"_OPCDAWrapper_.start: Start task completed at {time.strftime('%H:%M:%S')}")
+                        for task in self.tasks:
+
+                            if  not task.done():
+                                task.cancel()
+                       
+                       
+                    
+                     
+                       
                         self._status = 10
+                        self.tasks=[]
+                        logging.debug("_OPCDAWrapper_.start: Cancelled tasks")
                         await asyncio.sleep(3)
             

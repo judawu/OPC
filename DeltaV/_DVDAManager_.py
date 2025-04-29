@@ -4,6 +4,7 @@ import pythoncom
 import datetime
 import time
 import json
+import os
 from queue import Queue, Empty
 from asyncua import ua
 from typing import List, Dict, Tuple, Optional
@@ -46,6 +47,8 @@ class _OPCDAManager_:
                     #logging.debug(f"CustomDAManager.custom_callback: {path} = {value}, Quality={quality}, Timestamp={timestamp}")
    
         async def remove_items(self,items: List[str]):
+             logging.info(f"CustomDAManagerremove_items:remove items {items} started")
+             self._manual_stop_subcrible = True
              for item in items:
                 if item in self.items:
                     if item  in self._wrapper.node.nodes:
@@ -53,6 +56,7 @@ class _OPCDAManager_:
                             remove_node = self._wrapper.node.nodes[item]
 
                             if hasattr(remove_node, 'nodeid'):
+
                                 await self._wrapper.server.delete_nodes([remove_node], recursive=True)
                                 del self._wrapper.node.nodes[item]
                                 del self.callback.data[item]
@@ -60,7 +64,8 @@ class _OPCDAManager_:
                         except ua.UaStatusCodeError as e:
                                logging.warning(f"CustomDAManager.remove_items:Failed to delete existing node {item}: {str(e)}")
                     self.items.remove(item)
-             logging.debug(f"CustomDAManager.remove_items  completed")
+             self._manual_stop_subcrible = False
+             logging.info(f"CustomDAManager.remove_items: remove items completed")
         def broswer_thread(self):
           
             self._wrapper._initialize_com()
@@ -111,26 +116,32 @@ class _OPCDAManager_:
                         self._opcda.subscribe(items_to_subscribe, group_name=self.group_name, update_rate=self._da_update_rate, callback=self.custom_callback)
                         logging.debug(f"CustomDAManager.opcda_thread:Subscription started for group {self.group_name}")
                         while not self._wrapper.event.shutdown.is_set():
+         
                             
-                            
-                            if len(items_to_subscribe) != len(self.items):
+                            if not self._wrapper.event.polling.is_set() and len(items_to_subscribe) != len(self.items) :
+
                                 self._opcda.stop_subscribe(self.group_name)
                                 time.sleep(self._da_subscribe_waittime)
-                                items_to_subscribe=self.items.copy()
+                              
                                 if not self._manual_stop_subcrible:
+                                   
+                                    items_to_subscribe=self.items.copy()
                                     self._opcda.subscribe(items_to_subscribe, group_name=self.group_name, update_rate=self._da_update_rate, callback=self.custom_callback)
-                                    logging.debug(f"CustomDAManager.opcda_thread:Dectected items changed, Subscription restarted for group {self.group_name}")
+                                    logging.info(f"CustomDAManager.opcda_thread:Detected items changed, Subscription restarted for group {self.group_name}")
                                     time.sleep(self._da_subscribe_waittime)
                                 
                             try:
+
                                 poll_data = self.poll_queue.get_nowait()
                              
                                 items_to_poll, interval, max_count, max_time = poll_data
 
-                                logging.debug(f"CustomDAManager.opcda_thread:Starting poll for {items_to_poll} every {interval} seconds")
+                          
+                              
                                 start_time = time.time()
                                 count = 0
                                 while self._wrapper.event.polling.is_set() and not self._wrapper.event.shutdown.is_set() and (max_count is None or count < max_count) and (max_time is None or time.time() - start_time < max_time):
+                                    logging.info(f"CustomDAManager.opcda_thread:Starting poll for {items_to_poll} every {interval} seconds")
                                     try:
                                         
                                         results = self._opcda.read(items_to_poll)
@@ -139,8 +150,9 @@ class _OPCDAManager_:
                                         logging.error(f"_OPCDAWrapper_.opc_da_thread:Poll read error: {str(e)}")
                                     count += 1
                                     time.sleep(interval)
-                                logging.debug("CustomDAManager.opcda_thread:Polling completed")
                                 self._wrapper.event.polling.clear()
+                                logging.debug(f"CustomDAManager.opcda_thread:Polling {items_to_poll} completed")
+                               
                             except Empty:
                                 pass
 
@@ -148,9 +160,10 @@ class _OPCDAManager_:
                                 write_data = self.write_queue.get_nowait()
                               
                                 items_to_write, values, write_group_name, write_update_rate, future = write_data
-                                logging.debug(f"CustomDAManager.opcda_thread:Starting write operation for {items_to_write}")
+                               
                                 start_time = time.time()
                                 while self._wrapper.event.writing.is_set() and not self._wrapper.event.shutdown.is_set() and (time.time() - start_time < 10):
+                                    logging.debug(f"CustomDAManager.opcda_thread:Starting write operation for {items_to_write}")
                                     try:
                                         results = self._opcda.write(items_to_write,values, write_group_name, write_update_rate)
                                         if all(results):
@@ -194,8 +207,10 @@ class _OPCDAManager_:
                    logging.info("CustomDAManager.opcda_thread:OPC DA thread exiting")
         async def async_poll(self, items: List[str], interval: float = 1.0, max_count: Optional[int] = None, max_time: Optional[float] = None):
             if self._wrapper.event.polling.is_set():
-                logging.warning("CustomDAManager.async_poll:Polling already in progress")
-                return
+                logging.warning("CustomDAManager.async_poll:another Polling is in progress, waiting for 30s ")
+                await asyncio.sleep(20)  # 等待 20s 
+                if self._wrapper.event.polling.is_set():
+                        return
             self._wrapper.event.polling.set()
             self.poll_queue.put((items, interval, max_count, max_time))
             try:
@@ -203,7 +218,7 @@ class _OPCDAManager_:
             except asyncio.TimeoutError:
                 logging.debug(f"CustomDAManager.async_poll:Polling for {items} timed out ")
             
-                self._wrapper.event.polling.clear()
+              
             logging.debug(f"CustomDAManager.async_poll:Poll task for {items} exited at {time.strftime('%H:%M:%S')}")
         async def _wait_for_polling(self):
             while self._wrapper.event.polling.is_set() and not self._wrapper.event.shutdown.is_set():
@@ -246,7 +261,7 @@ class _OPCDAManager_:
             logging.debug(f"CustomDAManager.create_structure: Starting structure creation for base_path={base_path}")
             structure = structure if structure is not None else self.structure
             base_path = base_path if base_path is not None else self.path
-            logging.debug(f"CustomDAManager.create_structure:Creating folder structure under {parent_node} with base_path={base_path}, structure={structure}")
+            logging.info(f"CustomDAManager.create_structure:Creating folder structure under {parent_node} with base_path={base_path}, structure={structure}")
           
             for key, value in structure.items():
                 
@@ -349,13 +364,13 @@ class _OPCDAManager_:
         async def add_items(self, items: List[str],base_path: str = 'MODULES'):
             items_number =len(self.items)
             if self._max_items and items_number >= self._max_items:
-                  logging.info(f"CustomDAManager.update_ua_nodes: Reached max DST  ({self._max_items}), license Assgined, stop add items...")
+                  logging.info(f"CustomDAManager.add_items: Reached max DST  ({self._max_items}), license Assgined, stop add items...")
             else:                 
                 last_values = {}
-                logging.debug(f"CustomDAManager.add_items: try to  add items node for {items} at {base_path}...")
+                logging.info(f"CustomDAManager.add_items: try to  add items node for {items} at {base_path}...")
               
-                await self.async_poll(items, interval=1, max_time=float(items_number))
-                
+                #await self.async_poll(items, interval=1.0, max_time=float(items_number))
+                await self.async_poll(items, interval=1.0, max_time=2.0)
 
                 for item in items: 
                     data = None
@@ -434,7 +449,7 @@ class _OPCDAManager_:
                                 # 添加 WriteItem 方法
                                 async def write_item_wrapper(parent,value_variant,item=item):
                                     logging.debug(f"CustomDAManager.write_item: Client called WriteItem for {item} with value {value_variant.Value}")
-                                    return await self.write_items(parent,value_variant,item)
+                                    return await self.write_items(parent,value_variant, ua.Variant(item, ua.VariantType.String))
                                 
                                 await node.add_method(
                                 self._wrapper.node.idx,
@@ -496,6 +511,7 @@ class _OPCDAManager_:
                             logging.warning(f"CustomDAManager.add_items: item {item}: not in last values ot it's value doesn't change")
                     else:
                         logging.warning(f"CustomDAManage.add_items: item {item}: is not valid in opc data server,check your item path")
+                logging.info(f"CustomDAManage.add_items: add items completed")
         async def update_ua_nodes(self):
                 """Update OPC UA nodes with values from OPC DA items"""
                 
@@ -557,7 +573,7 @@ class _OPCDAManager_:
                                 try:
                                     variant = ua.Variant(variant_value, await node.read_data_type_as_variant_type())
                                     await node.write_value(ua.DataValue(variant, status, source_timestamp))
-                                    logging.debug(f"CustomDAManage.update_ua_nodes: update node  for {item} to {value} ")           
+                                   # logging.debug(f"CustomDAManage.update_ua_nodes: update node  for {item} to {value} ")           
                                 except ua.UaStatusCodeError as e:
                                     logging.error(f"CustomDAManage.update_ua_nodes: Failed to write {item}: {str(e)}")
                                     await  self._wrapper.node.last_error_desc.write_value(f"CustomDAManage.update_ua_nodes: Failed to write {item}, Error Occured: {str(e)}") 
@@ -668,19 +684,40 @@ class _OPCDAManager_:
                     await self._wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
                     await self._wrapper.node.last_error_desc.write_value(f"CustomDAManage.write_items:Unauthorized attempt to call write_items ")
                     return [ua.Variant(False, ua.VariantType.Boolean), ua.Variant("BadUserAccessDenied", ua.VariantType.String)]
-                logging.debug(f"CustomDAManage.write_items: called with items_variant: {items_variant}, values_variant: {values_variant}")
+                logging.info(f"CustomDAManage.write_items: called with items_variant: {items_variant}, values_variant: {values_variant}")
+              
                 try:
-                    if isinstance(items_variant, str):
-                        items = [items_variant]
+                    if not isinstance(items_variant, ua.Variant) or not isinstance(values_variant, ua.Variant):
+                        logging.error(f"CustomDAManage.write_items: Expected ua.Variant, got items={type(items_variant)}, values={type(values_variant)}")
+                        await self._wrapper.node.last_error_desc.write_value(f"CustomDAManage.write_items: Invalid input types")
+                        return [ua.Variant(False, ua.VariantType.Boolean)]
+                 
+                    # Handle single item/value or list of items/values
+                    if isinstance(items_variant.Value, str):
+                        items = [items_variant.Value]
                         values = [values_variant.Value]
-                    elif not isinstance(items_variant.Value, list) or not isinstance(values_variant.Value, list):
+                    elif isinstance(items_variant.Value, list) and isinstance(values_variant.Value, list):
+                        items = items_variant.Value  # List of strings
+                        
+                        values = [val.Value if isinstance(val, ua.Variant) else val for val in values_variant.Value]
+                
+                        # Validate lengths match
+                        if len(items) != len(values):
+                            logging.error(f"CustomDAManage.write_items: Mismatch in lengths: items={len(items)}, values={len(values)}")
+                            await self._wrapper.node.last_error_desc.write_value(f"CustomDAManage.write_items: Mismatch in lengths")
+                            return [ua.Variant(False, ua.VariantType.Boolean)]
+                            # Validate items are strings
+                        if not all(isinstance(item, str) for item in items):
+                            logging.error(f"CustomDAManage.write_items: Items list contains non-string elements")
+                            await self._wrapper.node.last_error_desc.write_value(f"CustomDAManage.write_items: Items list contains non-string elements")
+                            return [ua.Variant(False, ua.VariantType.Boolean)]
+                    else:
                         logging.error(f"CustomDAManage.write_items: Invalid input types: items={type(items_variant.Value)}, values={type(values_variant.Value)}")
+                        await self._wrapper.node.last_error_desc.write_value(f"CustomDAManage.write_items: Invalid input types")
                         return [ua.Variant(False, ua.VariantType.Boolean)]
                     
-                    else:
-                        items = items_variant.Value
-                        values = [val.Value for val in values_variant.Value]
                     await self.async_poll(items, interval=1.0, max_time=2.0)
+                    
                     for i in range(len(items)):
                         
                         current_data = self.callback.get_data(items[i])
@@ -857,7 +894,7 @@ class _OPCDAManager_:
                 logging.error(f"CustomDAManager.extract_items_from_json: Error extracting items from JSON: {str(e)}")
             return items
 
-        async def batch_control_nodes(self, batch_start: str, json_data):
+        async def batch_control_area(self, batch_start: str, json_data):
             """
             Monitors an OPC DA item and dynamically manages nodes based on its value.
             Calls add_nodes_from_json when value is 1, remove_items when value is 0.
@@ -867,11 +904,11 @@ class _OPCDAManager_:
                 batch_start (str): OPC DA item path to monitor.
                 json_data (str): JSON string for add_nodes_from_json and to extract items for removal.
             """
-            logging.debug(f"CustomDAManager.batch_control_nodes: Starting monitoring for item {batch_start}")
+            logging.debug(f"CustomDAManager.batch_control_area: Starting monitoring for item {batch_start}")
 
             # Validate batch_start item path
             if not isinstance(batch_start, str) or not batch_start.strip():
-                logging.error(f"CustomDAManager.batch_control_nodes: Invalid batch_start item path: {batch_start}")
+                logging.error(f"CustomDAManager.batch_control_area: Invalid batch_start item path: {batch_start}")
                 return
 
             # Parse JSON to extract items for removal
@@ -880,7 +917,7 @@ class _OPCDAManager_:
             # Ensure item is subscribed
             if batch_start not in self.items:
                 self.items.append(batch_start)
-                logging.debug(f"CustomDAManager.batch_control_nodes: Added {batch_start} to subscription list")
+                logging.debug(f"CustomDAManager.batch_control_area: Added {batch_start} to subscription list")
                 # Trigger subscription update and wait for initial data
                 await self.async_poll([batch_start], interval=1.0, max_time=3.0)
                 # Wait briefly to ensure subscription is active
@@ -889,8 +926,7 @@ class _OPCDAManager_:
                     if self.callback.get_data(batch_start):
                         break
                     await asyncio.sleep(0.5)
-                else:
-                    logging.warning(f"CustomDAManager.batch_control_nodes: No initial data for {batch_start} after subscription")
+             
 
             last_value = None
             while not self._wrapper.event.shutdown.is_set():
@@ -908,7 +944,7 @@ class _OPCDAManager_:
 
                         if current_value != last_value:
                             if current_value == 1:
-                             
+                                logging.info(f"CustomDAManager.batch_control_nodes: detected batch start signal {batch_start} changed to 1, auto load pre-config items")
                                 try:
                                     asyncio.create_task(self._process_json_structure(json_data, ""))
                                   
@@ -916,10 +952,10 @@ class _OPCDAManager_:
                                     logging.error(f"CustomDAManager.batch_control_nodes: Error adding nodes for {batch_start}: {str(e)}")
                             elif current_value == 0:
                                
-
+                                logging.info(f"CustomDAManager.batch_control_nodes: detected batch start signal {batch_start} changed to 0, auto unload pre-config items")
                                
                                 try:
-            
+              
                                     items_to_remove = self.extract_items_from_json(json_data)
                                     logging.debug(f"CustomDAManager.batch_control_nodes: Extracted items to remove: {items_to_remove}")
                                     if items_to_remove:
@@ -948,3 +984,101 @@ class _OPCDAManager_:
             
             logging.debug(f"CustomDAManager.batch_control_nodes: Stopped monitoring {batch_start}")
                 
+        async def dynamic_batch_control_area(self, area: str):
+                """
+                Dynamically manages OPC DA nodes for a given area (e.g., 'V3'). Reads a JSON config file,
+                replaces 'Vx' with the provided area, and delegates node management to batch_control_nodes.
+
+                Args:
+                    Vx (str): Area identifier (e.g., 'V3') to replace 'Vx' in the config.
+
+                Returns:
+                    asyncio.Task: Task handling the batch control nodes, or raises an exception on error.
+                """
+                logging.debug(f"CustomDAManager.dynamic_batch_control_areas: Starting for Area {area}")
+
+                # Construct the batch start item path
+                batch_start = f"{area}-COMMON/BATCH_START.CV"
+
+                # Validate version and batch_start
+                if not isinstance(area, str) or not area.strip():
+                    logging.error(f"CustomDAManager.dynamic_batch_control_areas: Invalid Area: {area}")
+                    raise ValueError(f"Invalid Area: {area}")
+                if not isinstance(batch_start, str) or not batch_start.strip():
+                    logging.error(f"CustomDAManager.dynamic_batch_control_areas: Invalid batch_start item path: {batch_start}")
+                    raise ValueError(f"Invalid batch_start item path: {batch_start}")
+
+                # Read and process the JSON config file
+                try:
+                    # Assume _base_dir is a string; use os.path.join
+                    config_path = os.path.join(self._wrapper._base_dir, "config", "autoloadnode", "TruBioVxconfig.json")
+                    with open(config_path, 'r') as file:
+                        config_data = file.read()
+                    # Replace 'Vx' with the provided version
+                    config_data = config_data.replace("Vxxxx", area)
+                    json_data = json.loads(config_data)
+                    logging.debug(f"CustomDAManager.dynamic_batch_control_areas: Successfully loaded and processed config for Area {area}")
+                except FileNotFoundError:
+                    logging.error(f"CustomDAManager.dynamic_batch_control_areas: Config file not found at {config_path}")
+                    raise FileNotFoundError(f"Config file not found at {config_path}")
+                except json.JSONDecodeError as e:
+                    logging.error(f"CustomDAManager.dynamic_batch_control_areas: Invalid JSON format in config: {str(e)}")
+                    raise json.JSONDecodeError(f"Invalid JSON format in config: {str(e)}", e.doc, e.pos)
+                except Exception as e:
+                    logging.error(f"CustomDAManager.dynamic_batch_control_areas: Error reading config: {str(e)}")
+                    raise RuntimeError(f"Error reading config: {str(e)}")
+
+                # Add the batch start item
+                await self.add_items([batch_start], f"MODULES.AREA_{area}")
+
+                # Create task for batch control nodes
+                area_load_task = asyncio.create_task(self.batch_control_area(batch_start, json_data=json_data))
+                logging.debug(f"CustomDAManager.dynamic_batch_control_areas: batch_autoload_task created for {area}")
+
+                return area_load_task
+        
+        async def auto_load_areas(self, parent, area_variant):
+                userrole = await self._wrapper.security._get_current_userrole()
+                if not self._wrapper.user_manager.check_method_permission(13, userrole):
+                    logging.warning(f"CustomDAManage.auto_load_areas:Unauthorized attempt to call auto_load_areas ")
+                    await self._wrapper.node.last_error_code.write_value(ua.StatusCodes.BadUserAccessDenied)
+                    await self._wrapper.node.last_error_desc.write_value(f"CustomDAManage.auto_load_areas:Unauthorized attempt to call auto_load_areas ")
+                    return [ua.Variant(False, ua.VariantType.Boolean), ua.Variant("BadUserAccessDenied", ua.VariantType.String)]
+                logging.debug(f"CustomDAManage.auto_load_areas: called with area_variant: {area_variant}")
+                try:
+                 
+                    
+                    if not isinstance(area_variant, ua.Variant):
+                        logging.error(f"CustomDAManage.auto_load_areas: Expected ua.Variant, got areas={type(area_variant)}")
+                        await self._wrapper.node.last_error_desc.write_value(f"CustomDAManage.auto_load_areas: Invalid input types")
+                        return [ua.Variant(False, ua.VariantType.Boolean)]
+                 
+                    # Handle single item/value or list of items/values
+                    if isinstance(area_variant.Value, str):
+                        areas = [area_variant.Value]
+                    
+                    elif isinstance(area_variant.Value, list) :
+                        areas = area_variant.Value  # List of strings
+                     
+                   
+                            # Validate items are strings
+                        if not all(isinstance(area, str) for area in areas):
+                            logging.error(f"CustomDAManage.auto_load_areas: Items list contains non-string elements")
+                            await self._wrapper.node.last_error_desc.write_value(f"CustomDAManage.auto_load_areas: Items list contains non-string elements")
+                            return [ua.Variant(False, ua.VariantType.Boolean)]
+                    else:
+                        logging.error(f"CustomDAManage.auto_load_areas: Invalid input types: areas={type(area_variant.Value)}")
+                        await self._wrapper.node.last_error_desc.write_value(f"CustomDAManage.auto_load_areas: Invalid input types")
+                        return [ua.Variant(False, ua.VariantType.Boolean)]
+                    for area in areas:
+                        task = await self.dynamic_batch_control_area(area)
+                        if isinstance(task, asyncio.Task):
+                                self._wrapper.tasks.append(task)
+                   
+                    return [ua.Variant(True, ua.VariantType.Boolean)]
+                except Exception as e:
+                            logging.error(f"CustomDAManage.auto_load_areas:Failed to auto_load_areas: {str(e)}")
+                            if self._wrapper.node.last_error_desc is not None: 
+                                await self._wrapper.node.last_error_desc.write_value(f"CustomDAManage.auto_load_areas :Failed to call auto_load_areas ,Error Occured: {str(e)}")
+                            raise           
+                    

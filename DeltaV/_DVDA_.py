@@ -2,9 +2,7 @@
 
 import win32com.client
 import pythoncom
-import pywintypes  # 添加此导入以解决 'pywintypes' 未定义的问题
 
-import json
 
 import logging
 import os
@@ -369,8 +367,11 @@ class _OPCDA_:
                 try:
                     if opc_item is not None:
                         value, quality, timestamp = opc_item.Read(2)  # 2 = OPC_DS_DEVICE
+                       
                         results.append((value, quality, timestamp))
+
                         logging.debug(f"_OPCDA_.read:  read {item_path} from OPC DA server {self.server_name},value is {value}, quality is {quality}, timestamp is {timestamp}")
+                   
                     else:
                         logging.error(f"_OPCDA_.read: Failed to read {item_path} from OPC DA server {self.server_name}")
                         results.append((None, -1, None))  # 用无效值表示读取失败
@@ -507,6 +508,7 @@ class _OPCDA_:
                     if self.server_name=="DeltaV.DVSYSsvr.1" and ('_' not in field):
                         if  field in ['TARGET','ACTUAL','UNITS'] :
                             chnanged_item_path=item_path.replace('.', '.A_')
+                     
                         else:                     
                             chnanged_item_path=item_path.replace('.', '.F_')
                         opc_item = group.OPCItems.AddItem(chnanged_item_path, i)
@@ -552,7 +554,7 @@ class _OPCDA_:
                         logging.debug(f"_OPCDA_.stop_subscribe: Subscription {group_name} stopped successfully from OPC da server {self.server_name}")
                       
                         return
-                logging.warning(f"_OPCDA_.stop_subscribe: Group {group_name} not found in OPCGroups from OPC da server {self.server_name}")
+                logging.debug(f"_OPCDA_.stop_subscribe: Group {group_name} not found in OPCGroups from OPC da server {self.server_name}")
                
             except Exception as e:
                 logging.error(f"_OPCDA_.stop_subscribe: Failed to stop subscription {group_name}  from OPC da server {self.server_name} : {str(e)}")
