@@ -1,8 +1,0 @@
- {
-    "item_ids":["V1-IO/DO1_NA_PV.CV", "V1-IO/DO1_TMP_PV.CV","V1-IO/PH1_MV_PV.CV"], 
-    "interval": 120, 
-    "start_time": "2025-04-14 01:39:51",
-    "end_time": "2025-04-20 21:39:51",
-    "aggregates": [1,1,2]  
- 
-}

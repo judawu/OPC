@@ -1,1 +1,0 @@
-{"ServerName": "OPC.DELTAV.1", "NodeName": "PROPLUS", "Application_uri": "OPC.DELTAV.1", "Endpoint": "opc.tcp://0.0.0.0:4840", "StartTime": "2025-04-27 04:58:30", "CurrentTime": "2025-04-27 04:58:54", "Status": "Running", "version": "1.0.18", "VendorInfo": "Juda.monster", "author": "juda.wu"}
