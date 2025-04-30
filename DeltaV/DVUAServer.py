@@ -101,7 +101,7 @@ async def DVOPCUAsever(max_time: Optional[float] = None, max_items: Optional[int
             #等待手动停止或超时
             # await asyncio.sleep(5)
             # print("_OPCDAWrapper_.main: auto load task for V2")
-            # await wrapper.da_manager.add_items(["V2-COMMON/BATCH_START.CV"], "MODULES.AREA_V2")
+            # await wrapper.da_manager.add_items(["V2/BATCH_START.CV"], "MODULES.AREA_V2")
             # alarm_config = {
             #                 "MODULES.AREA_V2.ALARMS.CUALM":[
             #                 "V2-AI-1/HI_ALM.CUALM",
