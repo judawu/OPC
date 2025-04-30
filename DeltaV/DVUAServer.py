@@ -19,8 +19,7 @@ async def DVOPCUAsever(max_time: Optional[float] = None, max_items: Optional[int
 
         simulate_items = [
         "V1-IO/AI1_SCI1.EU100",
-        "V1-IO/DO1_NA_PV.CV",
-        "V1-AI-1/FS_CTRL1/MOD_DESC.CV",
+        "V1-AI-1/MOD_DESC.CV",
         "V1-WIC-1/PID1/MODE.TARGET",
         "V1-AIC-1/HI_ALM.CUALM",
         "V1-TIC-JKT/HEAT_OUT_D.CV"    
@@ -54,7 +53,7 @@ async def DVOPCUAsever(max_time: Optional[float] = None, max_items: Optional[int
             await wrapper.da_manager.add_items(diagnostics_items, f"DIAGNOSTICS.Physical Network.Control Network.{wrapper._nodename}")
             await asyncio.sleep(5)
             # 示例：动态调用 update_node
-            new_item = await wrapper.da_manager.update_node("MODULES.AREA_V2.V2-EM.V2-AIC-DO.FS_CTRL1.IN_SCALE.EU100")
+            new_item = await wrapper.da_manager.update_node("MODULES.AREA_V2.V2-TIC-1/IN_SCALE.EU100")
             print(f"_OPCDAWrapper_.main: Added new item: {new_item}")
             await asyncio.sleep(5)          
             # 示例：动态调用 broswe_folder
