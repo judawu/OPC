@@ -482,6 +482,8 @@ class _OPCDAManager_:
                                     [ua.VariantType.String]
                                 )
                             # 更新节点值
+                            else:
+                                logging.debug(f"CustomDAManager.add_items: item{item} already in the server, update its value")
                             node =self._wrapper.node.nodes[item]
                         
                             node_type = await node.read_data_type()

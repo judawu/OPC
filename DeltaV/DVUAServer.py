@@ -19,9 +19,10 @@ async def DVOPCUAsever(max_time: Optional[float] = None, max_items: Optional[int
 
         simulate_items = [
         "V1-IO/AI1_SCI1.EU100",
-        "V1-AI-1/MOD_DESC.CV",
-        "V1-WIC-1/PID1/MODE.TARGET",
-        "V1-AIC-1/HI_ALM.CUALM",
+        "V1-IO/DO1_NA_PV.CV",
+        "V1-AI-1/FS_CTRL1/MOD_DESC.CV",
+        "V1-XIC-1/PID1/MODE.TARGET",
+        "V1-AIC-DO/HI_ALM.CUALM",
         "V1-TIC-JKT/HEAT_OUT_D.CV"    
         ]
 
@@ -49,58 +50,58 @@ async def DVOPCUAsever(max_time: Optional[float] = None, max_items: Optional[int
             
             print(f"_OPCDAWrapper_.main: add simulate items {items} ")
             await wrapper.da_manager.add_items(simulate_items, "MODULES.AREA_V1")
-            await asyncio.sleep(5)
-            await wrapper.da_manager.add_items(diagnostics_items, f"DIAGNOSTICS.Physical Network.Control Network.{wrapper._nodename}")
-            await asyncio.sleep(5)
-            # 示例：动态调用 update_node
-            new_item = await wrapper.da_manager.update_node("MODULES.AREA_V2.V2-TIC-1/IN_SCALE.EU100")
-            print(f"_OPCDAWrapper_.main: Added new item: {new_item}")
-            await asyncio.sleep(5)          
-            # 示例：动态调用 broswe_folder
-            await wrapper.da_manager.broswe_folder(base_path=f"DIAGNOSTICS.Physical Network.Control Network.{wrapper._nodename}")
-            print(f"_OPCDAWrapper_.main: Browsed and updated structure under DIAGNOSTICS.Physical Network.Control Network.{wrapper._nodename}")
+            # await asyncio.sleep(5)
+            # await wrapper.da_manager.add_items(diagnostics_items, f"DIAGNOSTICS.Physical Network.Control Network.{wrapper._nodename}")
+            # await asyncio.sleep(5)
+            # # 示例：动态调用 update_node
+            # new_item = await wrapper.da_manager.update_node("MODULES.AREA_V2.V2-EM.V2-AIC-DO.FS_CTRL1.IN_SCALE.EU100")
+            # print(f"_OPCDAWrapper_.main: Added new item: {new_item}")
+            # await asyncio.sleep(5)          
+            # # 示例：动态调用 broswe_folder
+            # await wrapper.da_manager.broswe_folder(base_path=f"DIAGNOSTICS.Physical Network.Control Network.{wrapper._nodename}")
+            # print(f"_OPCDAWrapper_.main: Browsed and updated structure under DIAGNOSTICS.Physical Network.Control Network.{wrapper._nodename}")
             # await asyncio.sleep(5)
             # await wrapper.da_manager.remove_items(simulate_items)
             # print("_OPCDAWrapper_.main: Remove items from subcrible")
             # Example: Call update_parameters_from_json
-            await asyncio.sleep(5)
-            sample_config = {
+            # await asyncio.sleep(5)
+            # sample_config = {
 
            
-                "_manual_stop": False,
-                "da_manager": {
-                    "_da_update_rate": 2000,
-                    "_ua_update_rate": 2,
-                    "_da_subscribe_waittime": 2
+            #     "_manual_stop": False,
+            #     "da_manager": {
+            #         "_da_update_rate": 2000,
+            #         "_ua_update_rate": 2,
+            #         "_da_subscribe_waittime": 2
                    
             
-                },
-                "history_manager": {
-                    "_event_update_rate": 5,
-                    "_retention_period": {"days": 1} , # Will be converted to timedelta
-                    "_period_event_filters" : {
-                                    "Category": ["PROCESS"],
-                                #  "Event_Type":["ALARM","EVENT","CHANGE"],
-                                #  "Attribute": ["LO_ALM","LO_LO_ALM","HI_ALM","HI_HI_ALM","PVBAD_ALM"],
-                                    "Area":["AREA_V1","AREA_V2","AREA_A"]
+            #     },
+            #     "history_manager": {
+            #         "_event_update_rate": 5,
+            #         "_retention_period": {"days": 1} , # Will be converted to timedelta
+            #         "_period_event_filters" : {
+            #                         "Category": ["PROCESS"],
+            #                     #  "Event_Type":["ALARM","EVENT","CHANGE"],
+            #                     #  "Attribute": ["LO_ALM","LO_LO_ALM","HI_ALM","HI_HI_ALM","PVBAD_ALM"],
+            #                         "Area":["AREA_V1","AREA_V2","AREA_A"]
                                                                         
-                                }
-                },
-                "user_manager": {
-                    "_anonymous_timeout" : 120 ,         
-                    "_cooldown_time" : 240,       
-                    "_monitor_period" : 5
-                    }
+            #                     }
+            #     },
+            #     "user_manager": {
+            #         "_anonymous_timeout" : 120 ,         
+            #         "_cooldown_time" : 240,       
+            #         "_monitor_period" : 5
+            #         }
 
-            }
-            json_data = json.dumps(sample_config).encode('utf-8')
-            result = await wrapper.update_parameters_from_json(None, ua.Variant(json_data, ua.VariantType.ByteString))
-            print(f"_OPCDAWrapper_.main: Updated parameters from JSON, result: {result[0].Value}")
+            # }
+            # json_data = json.dumps(sample_config).encode('utf-8')
+            # result = await wrapper.update_parameters_from_json(None, ua.Variant(json_data, ua.VariantType.ByteString))
+            # print(f"_OPCDAWrapper_.main: Updated parameters from JSON, result: {result[0].Value}")
     
             #等待手动停止或超时
             # await asyncio.sleep(5)
             # print("_OPCDAWrapper_.main: auto load task for V2")
-            # await wrapper.da_manager.add_items(["V2/BATCH_START.CV"], "MODULES.AREA_V2")
+            # await wrapper.da_manager.add_items(["V2-COMMON/BATCH_START.CV"], "MODULES.AREA_V2")
             # alarm_config = {
             #                 "MODULES.AREA_V2.ALARMS.CUALM":[
             #                 "V2-AI-1/HI_ALM.CUALM",
@@ -143,6 +144,30 @@ async def DVOPCUAsever(max_time: Optional[float] = None, max_items: Optional[int
             #                 "V2-AI-8/LO_ALM.CUALM",
             #                 "V2-AI-8/LO_LO_ALM.CUALM",
             #                 "V2-AI-8/PVBAD_ALM.CUALM",
+            #                 "V2-AIC-DO/2ND_BAD_ALM.CUALM",
+            #                 "V2-AIC-DO/2ND_DEV_ALM.CUALM",
+            #                 "V2-AIC-DO/3RD_BAD_ALM.CUALM",
+            #                 "V2-AIC-DO/3RD_DEV_ALM.CUALM",
+            #                 "V2-AIC-DO/DV_HI_ALM.CUALM",
+            #                 "V2-AIC-DO/DV_LO_ALM.CUALM",
+            #                 "V2-AIC-DO/HI_ALM.CUALM",
+            #                 "V2-AIC-DO/HI_HI_ALM.CUALM",
+            #                 "V2-AIC-DO/INTERLOCK_ALM.CUALM",
+            #                 "V2-AIC-DO/LO_ALM.CUALM",
+            #                 "V2-AIC-DO/LO_LO_ALM.CUALM",
+            #                 "V2-AIC-DO/PVBAD_ALM.CUALM",
+            #                 "V2-AIC-PH/2ND_BAD_ALM.CUALM",
+            #                 "V2-AIC-PH/2ND_DEV_ALM.CUALM",
+            #                 "V2-AIC-PH/3RD_BAD_ALM.CUALM",
+            #                 "V2-AIC-PH/3RD_DEV_ALM.CUALM",
+            #                 "V2-AIC-PH/DV_HI_ALM.CUALM",
+            #                 "V2-AIC-PH/DV_LO_ALM.CUALM",
+            #                 "V2-AIC-PH/HI_ALM.CUALM",
+            #                 "V2-AIC-PH/HI_HI_ALM.CUALM",
+            #                 "V2-AIC-PH/INTERLOCK_ALM.CUALM",
+            #                 "V2-AIC-PH/LO_ALM.CUALM",
+            #                 "V2-AIC-PH/LO_LO_ALM.CUALM",
+            #                 "V2-AIC-PH/PVBAD_ALM.CUALM",
             #                 "V2-FIC-1/DV_HI_ALM.CUALM",
             #                 "V2-FIC-1/DV_LO_ALM.CUALM",
             #                 "V2-FIC-1/HI_ALM.CUALM",
@@ -191,9 +216,147 @@ async def DVOPCUAsever(max_time: Optional[float] = None, max_items: Optional[int
             #                 "V2-FIC-6/LO_ALM.CUALM",
             #                 "V2-FIC-6/LO_LO_ALM.CUALM",   
             #                 "V2-FIC-6/PVBAD_ALM.CUALM",
-        ]}
+            #                 "V2-PI-VSL/HI_ALM.CUALM",
+            #                 "V2-PI-VSL/HI_HI_ALM.CUALM",
+            #                 "V2-PI-VSL/LO_ALM.CUALM",
+            #                 "V2-PI-VSL/LO_LO_ALM.CUALM",
+            #                 "V2-PI-VSL/PVBAD_ALM.CUALM",
+            #                 "V2-PI-VSL/SENSOR2_BAD_ALM.CUALM",
+            #                 "V2-PI-VSL/SENSOR_DEV_ALM.CUALM",
+            #                 "V2-SIC-1/DOSE_ALM.CUALM",
+            #                 "V2-SIC-1/DV_HI_ALM.CUALM",
+            #                 "V2-SIC-1/DV_LO_ALM.CUALM",
+            #                 "V2-SIC-1/HI_ALM.CUALM",
+            #                 "V2-SIC-1/HI_HI_ALM.CUALM",
+            #                 "V2-SIC-1/INTERLOCK_ALM.CUALM",
+            #                 "V2-SIC-1/LO_ALM.CUALM",
+            #                 "V2-SIC-1/LO_LO_ALM.CUALM",
+            #                 "V2-SIC-1/PVBAD_ALM.CUALM",
+            #                 "V2-SIC-1/TRIP_ALM.CUALM",
+            #                 "V2-SIC-2/DOSE_ALM.CUALM",
+            #                 "V2-SIC-2/DV_HI_ALM.CUALM",
+            #                 "V2-SIC-2/DV_LO_ALM.CUALM",
+            #                 "V2-SIC-2/HI_ALM.CUALM",
+            #                 "V2-SIC-2/HI_HI_ALM.CUALM",
+            #                 "V2-SIC-2/INTERLOCK_ALM.CUALM",
+            #                 "V2-SIC-2/LO_ALM.CUALM",
+            #                 "V2-SIC-2/LO_LO_ALM.CUALM",
+            #                 "V2-SIC-2/PVBAD_ALM.CUALM",
+            #                 "V2-SIC-2/TRIP_ALM.CUALM",
+            #                 "V2-SIC-3/DOSE_ALM.CUALM",
+            #                 "V2-SIC-3/DV_HI_ALM.CUALM",
+            #                 "V2-SIC-3/DV_LO_ALM.CUALM",
+            #                 "V2-SIC-3/HI_ALM.CUALM",
+            #                 "V2-SIC-3/HI_HI_ALM.CUALM",
+            #                 "V2-SIC-3/INTERLOCK_ALM.CUALM",
+            #                 "V2-SIC-3/LO_ALM.CUALM",
+            #                 "V2-SIC-3/LO_LO_ALM.CUALM",
+            #                 "V2-SIC-3/PVBAD_ALM.CUALM",
+            #                 "V2-SIC-3/TRIP_ALM.CUALM",
+            #                 "V2-SIC-4/DOSE_ALM.CUALM",
+            #                 "V2-SIC-4/DV_HI_ALM.CUALM",
+            #                 "V2-SIC-4/DV_LO_ALM.CUALM",
+            #                 "V2-SIC-4/HI_ALM.CUALM",
+            #                 "V2-SIC-4/HI_HI_ALM.CUALM",
+            #                 "V2-SIC-4/INTERLOCK_ALM.CUALM",
+            #                 "V2-SIC-4/LO_ALM.CUALM",
+            #                 "V2-SIC-4/LO_LO_ALM.CUALM",
+            #                 "V2-SIC-4/PVBAD_ALM.CUALM",
+            #                 "V2-SIC-4/TRIP_ALM.CUALM",
+            #                 "V2-SIC-5/DOSE_ALM.CUALM",
+            #                 "V2-SIC-5/DV_HI_ALM.CUALM",
+            #                 "V2-SIC-5/DV_LO_ALM.CUALM",
+            #                 "V2-SIC-5/HI_ALM.CUALM",
+            #                 "V2-SIC-5/HI_HI_ALM.CUALM",
+            #                 "V2-SIC-5/INTERLOCK_ALM.CUALM",
+            #                 "V2-SIC-5/LO_ALM.CUALM",
+            #                 "V2-SIC-5/LO_LO_ALM.CUALM",
+            #                 "V2-SIC-5/PVBAD_ALM.CUALM",
+            #                 "V2-SIC-5/TRIP_ALM.CUALM",
+            #                 "V2-SIC-6/DOSE_ALM.CUALM",
+            #                 "V2-SIC-6/DV_HI_ALM.CUALM",
+            #                 "V2-SIC-6/DV_LO_ALM.CUALM",
+            #                 "V2-SIC-6/HI_ALM.CUALM",
+            #                 "V2-SIC-6/HI_HI_ALM.CUALM",
+            #                 "V2-SIC-6/INTERLOCK_ALM.CUALM",
+            #                 "V2-SIC-6/LO_ALM.CUALM",
+            #                 "V2-SIC-6/LO_LO_ALM.CUALM",
+            #                 "V2-SIC-6/PVBAD_ALM.CUALM",
+            #                 "V2-SIC-6/TRIP_ALM.CUALM",
+            #                 "V2-SIC-AGIT/DV_HI_ALM.CUALM",
+            #                 "V2-SIC-AGIT/DV_LO_ALM.CUALM",
+            #                 "V2-SIC-AGIT/HI_ALM.CUALM",
+            #                 "V2-SIC-AGIT/HI_HI_ALM.CUALM",
+            #                 "V2-SIC-AGIT/INTERLOCK_ALM.CUALM",
+            #                 "V2-SIC-AGIT/LO_ALM.CUALM",
+            #                 "V2-SIC-AGIT/LO_LO_ALM.CUALM",
+            #                 "V2-SIC-AGIT/PVBAD_ALM.CUALM",
+            #                 "V2-SIC-AGIT/TRIP_ALM.CUALM",
+            #                 "V2-TIC-JKT/DV_HI_ALM.CUALM",
+            #                 "V2-TIC-JKT/DV_LO_ALM.CUALM",
+            #                 "V2-TIC-JKT/HI_ALM.CUALM",
+            #                 "V2-TIC-JKT/HI_HI_ALM.CUALM",
+            #                 "V2-TIC-JKT/INTERLOCK_ALM.CUALM",
+            #                 "V2-TIC-JKT/LO_ALM.CUALM",
+            #                 "V2-TIC-JKT/LO_LO_ALM.CUALM",
+            #                 "V2-TIC-JKT/PRB2_BAD_ALM.CUALM",
+            #                 "V2-TIC-JKT/PRB_DEV_ALM.CUALM",
+            #                 "V2-TIC-JKT/PVBAD_ALM.CUALM",
+            #                 "V2-TIC-JKT/TCU_ALM.CUALM",
+            #                 "V2-TIC-VSL/DV_HI_ALM.CUALM",
+            #                 "V2-TIC-VSL/DV_LO_ALM.CUALM",
+            #                 "V2-TIC-VSL/HI_ALM.CUALM",
+            #                 "V2-TIC-VSL/HI_HI_ALM.CUALM",
+            #                 "V2-TIC-VSL/INTERLOCK_ALM.CUALM",
+            #                 "V2-TIC-VSL/LO_ALM.CUALM",
+            #                 "V2-TIC-VSL/LO_LO_ALM.CUALM",
+            #                 "V2-TIC-VSL/PRB2_BAD_ALM.CUALM",
+            #                 "V2-TIC-VSL/PRB_DEV_ALM.CUALM",
+            #                 "V2-TIC-VSL/PVBAD_ALM.CUALM",
+            #                 "V2-TIC-VSL/TCU_ALM.CUALM",
+            #                 "V2-WIC-VSL/DV_HI_ALM.CUALM",
+            #                 "V2-WIC-VSL/DV_LO_ALM.CUALM",
+            #                 "V2-WIC-VSL/HI_ALM.CUALM",
+            #                 "V2-WIC-VSL/HI_HI_ALM.CUALM",
+            #                 "V2-WIC-VSL/INTERLOCK_ALM.CUALM",
+            #                 "V2-WIC-VSL/LO_ALM.CUALM",
+            #                 "V2-WIC-VSL/LO_LO_ALM.CUALM",
+            #                 "V2-WIC-VSL/PVBAD_ALM.CUALM",
+            #                 "V2-XIC-1/DV_HI_ALM.CUALM",
+            #                 "V2-XIC-1/DV_LO_ALM.CUALM",
+            #                 "V2-XIC-1/HI_ALM.CUALM",
+            #                 "V2-XIC-1/HI_HI_ALM.CUALM",
+            #                 "V2-XIC-1/INTERLOCK_ALM.CUALM",
+            #                 "V2-XIC-1/LO_ALM.CUALM",
+            #                 "V2-XIC-1/LO_LO_ALM.CUALM",
+            #                 "V2-XIC-1/PVBAD_ALM.CUALM",
+            #                 "V2-XIC-2/DV_HI_ALM.CUALM",
+            #                 "V2-XIC-2/DV_LO_ALM.CUALM",
+            #                 "V2-XIC-2/HI_ALM.CUALM",
+            #                 "V2-XIC-2/HI_HI_ALM.CUALM",
+            #                 "V2-XIC-2/INTERLOCK_ALM.CUALM",
+            #                 "V2-XIC-2/LO_ALM.CUALM",
+            #                 "V2-XIC-2/LO_LO_ALM.CUALM",
+            #                 "V2-XIC-2/PVBAD_ALM.CUALM",
+            #                 "V2-XIC-3/DV_HI_ALM.CUALM",
+            #                 "V2-XIC-3/DV_LO_ALM.CUALM",
+            #                 "V2-XIC-3/HI_ALM.CUALM",
+            #                 "V2-XIC-3/HI_HI_ALM.CUALM",
+            #                 "V2-XIC-3/INTERLOCK_ALM.CUALM",
+            #                 "V2-XIC-3/LO_ALM.CUALM",
+            #                 "V2-XIC-3/LO_LO_ALM.CUALM",
+            #                 "V2-XIC-3/PVBAD_ALM.CUALM",
+            #                 "V2-XIC-4/DV_HI_ALM.CUALM",
+            #                 "V2-XIC-4/DV_LO_ALM.CUALM",
+            #                 "V2-XIC-4/HI_ALM.CUALM",
+            #                 "V2-XIC-4/HI_HI_ALM.CUALM",
+            #                 "V2-XIC-4/INTERLOCK_ALM.CUALM",
+            #                 "V2-XIC-4/LO_ALM.CUALM",
+            #                 "V2-XIC-4/LO_LO_ALM.CUALM",
+            #                 "V2-XIC-4/PVBAD_ALM.CUALM",
+            #                 "V2-COMMON/ESTOP_ALM.CUALM"]}
       
-            # batch_cotrol_task=asyncio.create_task(wrapper.da_manager.batch_control_area("V2/BATCH_START.CV", json_data=alarm_config))
+            # batch_cotrol_task=asyncio.create_task(wrapper.da_manager.batch_control_area("V2-COMMON/BATCH_START.CV", json_data=alarm_config))
            
            
             if max_time :  
@@ -249,7 +412,7 @@ async def main():
   
     
     # Example: Set logging level (can be changed as needed)
-    opcua_loggeer.set_logging_level(1)
+    opcua_loggeer.set_logging_level(0)
     
     # Start daily log rotation task
     rotate_task  = asyncio.create_task(opcua_loggeer.rotate_daily_logs(log_file))

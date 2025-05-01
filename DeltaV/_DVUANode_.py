@@ -14,6 +14,7 @@ class _OPCUANode_:
             self.parameters_folder=None
             self.methods_nodes={}
             self.parameters_nodes = {}  # Dict[str, ua.Node]
+           
             self.folders = {}  # 新增: 用于存储文件夹节点
           
             self.events_node = None           
@@ -21,7 +22,8 @@ class _OPCUANode_:
             self.alarm_type = None
             self.event_type = None
             self.historian_node = None
-          
+            self.pubsub_folder =None
+            self.pubsub_nodes={}
 
             self.last_error_code = None  # 用于存储错误状态的节点
             self.last_error_desc = None  # 用于存储错误状态的节点
