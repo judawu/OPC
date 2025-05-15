@@ -1,11 +1,11 @@
 import json
 import socket
-from typing import Dict,List
+import datetime
 import asyncio
-
+import io
 import logging
 import struct
-from cryptography.fernet import Fernet
+from typing import List, Dict, Any, Tuple
 
 import logging
 import json
@@ -30,7 +30,12 @@ class _OPCUAPubSub_:
         self.published_datasets_folder=None
         self.running = False  # Flag to control publishing loop
         self.sock = None  # UDP socket for publishing
-        self.publisher_id = 1  # Add a PublisherId for the WriterGroup
+        self.publisher_id = ua.Variant(1, ua.VariantType.UInt16) # Store as UA Variant
+        self.published_datasets: Dict[str, Dict[str, Any]] = {}
+        self.writer_groups: Dict[str, Any] = {} # Assuming Any is Node or similar
+        self.dataset_writers: Dict[str, Any] = {} # Assuming Any is Node or similar
+          # Add state for sequence numbers per DataSetWriterId
+        self.sequence_numbers: Dict[int, int] = {} # Key: DataSetWriterId, Value: Sequence Number
         logging.info("_OPCUAPubSub_.__init__: Initialized Pub/Sub manager")
 
     async def setup_pubsub(self):
@@ -325,7 +330,8 @@ class _OPCUAPubSub_:
             self.running = True
 
             # Start the publishing loop
-            asyncio.create_task(self._publish_loop())
+            pubsub_task=asyncio.create_task(self._publish_loop())
+            self.wrapper.tasks.append(pubsub_task)
             logging.info("_OPCUAPubSub_.start: Started publishing")
         except Exception as e:
             logging.error(f"_OPCUAPubSub_.start: Error starting publishing: {str(e)}")
@@ -335,95 +341,276 @@ class _OPCUAPubSub_:
                 self.sock = None
             raise
 
-    async def _publish_loop(self):
-            """Periodically publish data via UDP multicast with a simplified binary format."""
-            while self.running:
-                try:
-                    for dataset_name, dataset_info in self.published_datasets.items():
-                        # Collect data from all variables in the dataset
-                        values = []
-                        for var_name, node in dataset_info["variables"]:
-                            try:
-                                value = await node.read_value()
-                                values.append((var_name, value))
-                            except Exception as e:
-                                logging.warning(f"_OPCUAPubSub_._publish_loop: Error reading {var_name}: {str(e)}")
-                                continue
+    # async def _publish_loop(self):
+    #         """Periodically publish data via UDP multicast with a simplified binary format."""
+    #         while self.running:
+    #             try:
+    #                 for dataset_name, dataset_info in self.published_datasets.items():
+    #                     # Collect data from all variables in the dataset
+    #                     values = []
+    #                     for var_name, node in dataset_info["variables"]:
+    #                         try:
+    #                             value = await node.read_value()
+    #                             values.append((var_name, value))
+    #                         except Exception as e:
+    #                             logging.warning(f"_OPCUAPubSub_._publish_loop: Error reading {var_name}: {str(e)}")
+    #                             continue
 
-                        # Create a simplified binary message
-                        message = bytearray()
+    #                     # Create a simplified binary message
+    #                     message = bytearray()
                         
-                        # Header: PublisherId (UInt16), DataSetWriterId (UInt16), Number of fields (UInt16)
-                        message.extend(struct.pack('!H', self.publisher_id))  # PublisherId
-                        message.extend(struct.pack('!H', 1))  # DataSetWriterId (hardcoded to 1, adjust if needed)
-                        message.extend(struct.pack('!H', len(values)))  # Number of fields
+    #                     # Header: PublisherId (UInt16), DataSetWriterId (UInt16), Number of fields (UInt16)
+    #                     message.extend(struct.pack('!H', self.publisher_id))  # PublisherId
+    #                     message.extend(struct.pack('!H', 1))  # DataSetWriterId (hardcoded to 1, adjust if needed)
+    #                     message.extend(struct.pack('!H', len(values)))  # Number of fields
 
-                        # Serialize values (simplified: assume values are basic types like int, float, string)
-                        for var_name, value in values:
-                            # Encode variable name (null-terminated string)
-                            message.extend(var_name.encode('utf-8'))
-                            message.extend(b'\x00')
+    #                     # Serialize values (simplified: assume values are basic types like int, float, string)
+    #                     for var_name, value in values:
+    #                         # Encode variable name (null-terminated string)
+    #                         message.extend(var_name.encode('utf-8'))
+    #                         message.extend(b'\x00')
                             
-                            # Encode value (simplified: handle int, float, string)
-                            if isinstance(value, int):
-                                message.extend(struct.pack('!B', 1))  # Type: 1 = Int32
-                                message.extend(struct.pack('!i', value))
-                            elif isinstance(value, float):
-                                message.extend(struct.pack('!B', 2))  # Type: 2 = Float
-                                message.extend(struct.pack('!f', value))
-                            elif isinstance(value, str):
-                                message.extend(struct.pack('!B', 3))  # Type: 3 = String
-                                message.extend(value.encode('utf-8'))
-                                message.extend(b'\x00')
-                            else:
-                                logging.warning(f"_OPCUAPubSub_._publish_loop: Unsupported value type for {var_name}")
-                                continue
+    #                         # Encode value (simplified: handle int, float, string)
+    #                         if isinstance(value, int):
+    #                             message.extend(struct.pack('!B', 1))  # Type: 1 = Int32
+    #                             message.extend(struct.pack('!i', value))
+    #                         elif isinstance(value, float):
+    #                             message.extend(struct.pack('!B', 2))  # Type: 2 = Float
+    #                             message.extend(struct.pack('!f', value))
+    #                         elif isinstance(value, str):
+    #                             message.extend(struct.pack('!B', 3))  # Type: 3 = String
+    #                             message.extend(value.encode('utf-8'))
+    #                             message.extend(b'\x00')
+    #                         else:
+    #                             logging.warning(f"_OPCUAPubSub_._publish_loop: Unsupported value type for {var_name}")
+    #                             continue
 
-                        # Prepend message length
-                        full_message = struct.pack('!I', len(message)) + message
+    #                     # Prepend message length
+    #                     full_message = struct.pack('!I', len(message)) + message
 
-                        # Send the message via UDP multicast
-                        self.sock.sendto(full_message, (self.multicast_address, self.multicast_port))
-                        logging.debug(f"_OPCUAPubSub_._publish_loop: Published message {full_message} for {dataset_name}")
+    #                     # Send the message via UDP multicast
+    #                     self.sock.sendto(full_message, (self.multicast_address, self.multicast_port))
+    #                     logging.debug(f"_OPCUAPubSub_._publish_loop: Published message {full_message} for {dataset_name}")
 
-                    # Wait for the publishing interval
-                    await asyncio.sleep(self.publishing_interval / 1000.0)
+    #                 # Wait for the publishing interval
+    #                 await asyncio.sleep(self.publishing_interval / 1000.0)
 
-                except Exception as e:
-                    logging.error(f"_OPCUAPubSub_._publish_loop: Error in publishing loop: {str(e)}")
-                    break
+    #             except Exception as e:
+    #                 logging.error(f"_OPCUAPubSub_._publish_loop: Error in publishing loop: {str(e)}")
+    #                 break
 
-            # Cleanup if loop exits
-            self.running = False
-            if self.sock:
+    #         # Cleanup if loop exits
+    #         self.running = False
+    #         if self.sock:
+    #             self.sock.close()
+    #             self.sock = None
+    #         logging.info("_OPCUAPubSub_._publish_loop: Publishing loop stopped")
+
+    async def _publish_loop(self):
+        """Periodically publish data via UDP multicast using UADP encoding."""
+        while self.running:
+            current_time = asyncio.get_event_loop().time()
+            try:
+                for dataset_name, dataset_info in self.published_datasets.items():
+                    if dataset_name not in self.dataset_writers:
+                        logging.warning(f"_OPCUAPubSub_._publish_loop: No DataSetWriter info found for {dataset_name}, skipping.")
+                        continue
+
+                    # --- Get DataSetWriter ID ---
+                    # Option 1: Retrieve from stored info (RECOMMENDED if you stored it)
+                    # writer_info = self.dataset_writers.get(dataset_name)
+                    # if not writer_info or "id" not in writer_info:
+                    #      logging.warning(f"DataSetWriter ID not found for {dataset_name}")
+                    #      continue
+                    # dataset_writer_id = writer_info["id"]
+
+                    # Option 2: Read from the node (Slower, but reflects current server state)
+                    # try:
+                    #     writer_node = self.dataset_writers[dataset_name]["node"] # Assuming node stored
+                    #     # Find the 'DataSetWriterId' variable node (adjust Browse path if needed)
+                    #     id_node = await writer_node.get_child(f"{self.wrapper.node.idx}:DataSetWriterId_{dataset_name}") # Check exact browse name
+                    #     if id_node:
+                    #        dataset_writer_id = await id_node.read_value()
+                    #     else:
+                    #         logging.warning(f"DataSetWriterId node not found for {dataset_name}")
+                    #         dataset_writer_id = 1 # Fallback or error
+                    # except Exception as e:
+                    #     logging.error(f"Error reading DataSetWriterId for {dataset_name}: {e}")
+                    #     continue # Skip this dataset for this cycle
+
+                    # Option 3: Use a hardcoded/known ID (Simpler for example, but less robust)
+                    dataset_writer_id = 1 # <<< Make sure this matches the configuration in add_published_dataset
+
+                    # --- Collect Data ---
+                    values_to_publish = []
+                    ordered_vars = dataset_info.get("variables", [])
+                    if not ordered_vars:
+                         logging.warning(f"No variables configured for dataset {dataset_name}")
+                         continue
+
+                    for var_name, node in ordered_vars:
+                        try:
+                            # Read DataValue to potentially get timestamp and status from source
+                            data_value = await node.read_data_value()
+                            # We need the value itself for the UADP payload Variant
+                            values_to_publish.append(data_value.Value)
+                        except Exception as read_err:
+                            logging.warning(f"_OPCUAPubSub_._publish_loop: Error reading {var_name}: {read_err}")
+                            # Handle error: Maybe publish a null/default value or skip?
+                            # For simplicity, let's try to publish None if read fails
+                            values_to_publish.append(None) # Or skip the message entirely
+
+                    # --- Serialize to UADP ---
+                    try:
+                        # Pass the raw values; serialization wraps them in Variants
+                        uadp_message = self._serialize_uadp_message(
+                            self.publisher_id.Value, # Pass the raw uint16 value
+                            dataset_writer_id,
+                            values_to_publish
+                        )
+                    except Exception as ser_err:
+                        logging.error(f"_OPCUAPubSub_._publish_loop: Error serializing UADP for {dataset_name}: {ser_err}")
+                        continue # Skip sending if serialization fails
+
+                    # --- Send the message via UDP multicast ---
+                    if self.sock and uadp_message:
+                        try:
+                            self.sock.sendto(uadp_message, (self.multicast_address, self.multicast_port))
+                            logging.debug(f"_OPCUAPubSub_._publish_loop: Published UADP message for {dataset_name} (WriterID: {dataset_writer_id}), size: {len(uadp_message)}")
+                        except Exception as send_err:
+                             logging.error(f"_OPCUAPubSub_._publish_loop: Error sending UDP packet: {send_err}")
+                             # Consider re-initializing socket or handling network issues
+
+                # --- Wait for the next interval ---
+                # Calculate sleep time based on actual processing time
+                elapsed_time = asyncio.get_event_loop().time() - current_time
+                sleep_duration = max(0, (self.publishing_interval / 1000.0) - elapsed_time)
+                await asyncio.sleep(sleep_duration)
+
+            except asyncio.CancelledError:
+                logging.info("_OPCUAPubSub_._publish_loop: Publishing loop cancelled.")
+                break
+            except Exception as e:
+                logging.error(f"_OPCUAPubSub_._publish_loop: Error in publishing loop: {e}", exc_info=True)
+                # Decide whether to break or continue after errors
+                await asyncio.sleep(self.publishing_interval / 1000.0) # Wait before retrying
+
+        # Cleanup if loop exits
+        self.running = False
+        if self.sock:
+            try:
                 self.sock.close()
+            except Exception as sock_err:
+                 logging.error(f"Error closing socket: {sock_err}")
+            finally:
                 self.sock = None
-            logging.info("_OPCUAPubSub_._publish_loop: Publishing loop stopped")
+        logging.info("_OPCUAPubSub_._publish_loop: Publishing loop stopped")
 
-    def _serialize_uadp_message(self, network_message):
-            """
-            Placeholder for UADP message serialization.
-            In practice, use a library or implement the UADP binary encoding as per OPC UA Part 14.
-            """
-            # This is a simplified example; actual UADP encoding is complex
-            import struct
-            # Example: Encode PublisherId and DataSetMessage
-            message = bytearray()
-            message.extend(struct.pack('!B', 0x80))  # NetworkMessageFlags
-            message.extend(struct.pack('!H', self.publisher_id))  # PublisherId
-            message.extend(struct.pack('!B', 0x01))  # DataSetFlags1
-            message.extend(struct.pack('!H', 1))  # DataSetWriterId
-            # Add fields (simplified, assumes Variant encoding)
-            for field in network_message.DataSetMessages[0].Fields:
-                # Encode Variant (this is a placeholder; actual encoding depends on type)
-                value = field.Value
-                if isinstance(value, int):
-                    message.extend(struct.pack('!i', value))
-                elif isinstance(value, float):
-                    message.extend(struct.pack('!f', value))
-                else:
-                    message.extend(str(value).encode('utf-8'))
-            return bytes(message)
+
+    # --- REVISED _serialize_uadp_message ---
+    def _serialize_uadp_message(self, publisher_id: int, dataset_writer_id: int, values: List[Any]) -> bytes:
+        """
+        Serialize data into a simplified UADP NetworkMessage containing one DataSetMessage.
+
+        Args:
+            publisher_id: The publisher ID (UInt16).
+            dataset_writer_id: The DataSetWriter ID (UInt16).
+            values: A list of raw Python values to be published, in the order defined
+                    by the DataSetMetaData.
+
+        Returns:
+            The UADP message as bytes, or None on error.
+        """
+        try:
+            # Use BytesIO for efficient byte manipulation
+            buf = io.BytesIO()
+
+            # --- NetworkMessage Header ---
+            # Flags (Byte): Bit 0=PayloadIsDataSetMessageArray=1, Bit 7=PublisherIdEnabled=1 => 0x81
+            # Other flags (Security, Group, Timestamps etc.) are 0 for this simple case.
+            uadp_flags = 0x81
+            buf.write(struct.pack('!B', uadp_flags))
+
+            # PublisherId (UInt16) - Already ensured it's UInt16 Variant's value
+            buf.write(struct.pack('!H', publisher_id))
+
+            # ExtendedFlags1/2, GroupHeader, SecurityHeader etc. - Skipped for simplicity
+
+            # --- Payload Header ---
+            # Number of DataSetMessages in Payload (Byte) - We send one per call
+            buf.write(struct.pack('!B', 1))
+
+            # --- DataSetMessage 1 ---
+            # DataSetFlags1 (Byte): Bit 0=Valid=1, Bit 1=Timestamp=1, Bit 5=SequenceNumber=1 => 0x23 ?
+            # Let's double check Part 14:
+            # Bit 0: Valid Message (1)
+            # Bit 1: Timestamp (1)
+            # Bit 2: PicoSeconds (0)
+            # Bit 3: Status (0)
+            # Bit 4: ConfigurationVersion (0)
+            # Bit 5: SequenceNumber (1)
+            # Result: 0b00100011 = 0x23
+            ds_flags1 = 0x23
+            buf.write(struct.pack('!B', ds_flags1))
+
+            # DataSetFlags2 (Byte): No KeyFrame or specific flags here.
+            ds_flags2 = 0x00
+            buf.write(struct.pack('!B', ds_flags2))
+
+            # DataSetWriterId (UInt16)
+            buf.write(struct.pack('!H', dataset_writer_id))
+
+            # SequenceNumber (UInt16) - Manage state per writer ID
+            # Initialize if not present
+            if dataset_writer_id not in self.sequence_numbers:
+                self.sequence_numbers[dataset_writer_id] = 0
+            # Increment sequence number (handle wrap around)
+            self.sequence_numbers[dataset_writer_id] = (self.sequence_numbers[dataset_writer_id] + 1) & 0xFFFF
+            seq_num = self.sequence_numbers[dataset_writer_id]
+            buf.write(struct.pack('!H', seq_num))
+
+            # Timestamp (DateTime - UADateTime UInt64) - Little Endian!
+            now_utc = datetime.datetime.now(datetime.timezone.utc).timestamp()
+            buf.write(struct.pack('!d', now_utc))
+            # --- DataSet Payload ---
+            # Number of Fields (UInt16) - This seems optional in some contexts if metadata known,
+            # but often included for clarity or if DataSetFlags1 doesn't guarantee structure.
+            # Let's include it. Check if this is standard practice for UADP *data* messages.
+            # Part 14, 7.2.2.3.3: "The number of Fields is defined by the DataSetMetaData..."
+            # It implies the count isn't explicitly needed here if metadata is fixed.
+            # However, some examples show it. Let's *omit* it for now based on the spec quote.
+            # If issues arise, add: buf.write(struct.pack('!H', len(values)))
+
+            # Field Values (Encoded Variants)
+            for value in values:
+                try:
+                    # Create a ua.Variant. The library should handle type mapping.
+                    # Handle potential None values from read errors if necessary
+                    if value is None:
+                        # Encode ua.Variant with Null status or skip?
+                        # Let's create a Variant with no value (should encode as Null)
+                        variant_to_encode = ua.Variant(None)
+             
+                    else:
+                        # The library's Variant constructor often guesses the type,
+                        # but explicitly setting it can be safer if the source type is ambiguous.
+                        # For simplicity here, we let it guess unless it's a datetime.
+                        variant_to_encode = ua.Variant(value)
+
+                    buf.write(ua.ua_binary.variant_to_binary(variant_to_encode))
+                 
+                except Exception as enc_err:
+                    logging.error(f"Failed to encode value '{value}' (Type: {type(value)}) as Variant: {enc_err}", exc_info=True)
+                    # How to handle partial message? Best to abort serialization.
+                    return None # Indicate serialization failure
+
+            # --- Finalize ---
+            return buf.getvalue()
+
+        except Exception as e:
+            logging.error(f"Error during UADP message serialization: {e}", exc_info=True)
+            return None
+
 
     async def stop(self):
         """Stop all Pub/Sub activities."""

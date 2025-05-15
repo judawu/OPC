@@ -24,8 +24,8 @@ class _OPCUASecurity_:
             self._cert_path = os.path.join(self._cert_dir, "server_cert.pem")
             self._key_path = os.path.join(self._cert_dir, "server_key.pem")
             self._trustedcert_dir=os.path.join(self._cert_dir, "trusted")
-           
-            self.security_policies = None # 运行时动态填充
+         
+            self.security_policies = [ua.SecurityPolicyType.NoSecurity]
 
 
         async def generate_self_signed_cert(self,cert_path:str=None, key_path:str=None):
@@ -182,15 +182,15 @@ class _OPCUASecurity_:
                     }
                     policy_class = policy_map.get(security_policy, SecurityPolicyBasic256Sha256)
                     mode = ua.MessageSecurityMode.SignAndEncrypt if sign_and_encrypt else ua.MessageSecurityMode.Sign
-                    self.security_policies = [SecurityPolicy(), policy_class]
+                    self.security_policies = [ua.SecurityPolicyType.NoSecurity, policy_class]
                     for policy in self.security_policies:
-                        if policy != SecurityPolicy():
+                        if policy != ua.SecurityPolicyType.NoSecurity:
                             policy.ClientCertificateDir = self._trustedcert_dir
                     
                     logging.debug(f"_OPCDAWrapper_.set_server_policy:Updated security policy to {security_policy}:{'SignAndEncrypt' if sign_and_encrypt else 'Sign'}")
                 
                     self._wrapper.server.set_security_policy(self.security_policies)
-                    logging.debug(f"_OPCDAWrapper_.set_server_policy:Security policies set: {[policy.URI for policy in self.security_policies]}")
+                    logging.debug(f"_OPCDAWrapper_.set_server_policy:Security policies set: {[policy for policy in self.security_policies]}")
                     return [ua.Variant(True, ua.VariantType.Boolean)]  # 失败时也返回列表
                 
             

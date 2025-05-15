@@ -97,7 +97,7 @@ class _DVLicManager_:
                 received_auth_code, license_key,po_part = decoded
                 logging.debug(f"_DVLicManager_ DEBUG: Received license_key: {license_key}")
                 # Verify hardware code by regenerating software code
-                software_code = self._generate_software_code( hardware_code,po_number)
+                software_code = self._generate_software_code(hardware_code,po_number)
                 expected_auth_code = hashlib.sha256((software_code + license_key + po_part).encode()).hexdigest()
                 # Debug prints to diagnose mismatch
                 logging.debug(f"_DVLicManager_ DEBUG: Received auth_code: {received_auth_code}")
